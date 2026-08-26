@@ -130,26 +130,30 @@ export const AutonomousAutoPilotModal: React.FC<AutonomousAutoPilotModalProps> =
     }
   };
 
+  const delay = (ms: number) => new Promise<void>((resolve) => {
+    window.setTimeout(() => resolve(), ms);
+  });
+
   const handleTriggerManualRun = async () => {
     setIsRunningToday(true);
     setActiveStepIndex(0);
 
     // Step 1: Scan
-    await new Promise(r => setTimeout(r, 1200));
+    await delay(1200);
     setActiveStepIndex(1);
 
     // Step 2: Match
-    await new Promise(r => setTimeout(r, 1400));
+    await delay(1400);
     setActiveStepIndex(2);
 
     // Step 3: ATS Resume
-    await new Promise(r => setTimeout(r, 1500));
+    await delay(1500);
     setActiveStepIndex(3);
 
     // Step 4: Submit
     const result = await onExecuteDailyRun(config);
     setActiveStepIndex(4);
-    await new Promise(r => setTimeout(r, 800));
+    await delay(800);
 
     const newLog: AutoPilotRunLog = {
       id: `log-${Date.now()}`,
