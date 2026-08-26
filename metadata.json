@@ -1,0 +1,6 @@
+{
+  "name": "AutoApply HITL Engine",
+  "description": "Production-grade, zero-cost Human-in-the-Loop (HITL) job application engine with multi-country ATS resume generation, Telegram/Discord alerts, AI voice mock interviews, automated scheduling, and skill gap analytics.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
