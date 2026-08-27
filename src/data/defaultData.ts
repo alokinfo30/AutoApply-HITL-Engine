@@ -6,7 +6,9 @@ export const DEFAULT_CANDIDATE_PROFILE: CandidateProfile = {
   email: "alokinfo30@gmail.com",
   phone: "+91 98765 43210",
   currentLocation: "Lucknow, India",
-  targetRoles: ["AI Engineer", "Senior Full Stack Engineer", "Node.js Architect", "Scrum Master"],
+  nativeCountry: "India",
+  citizenship: "Indian",
+  targetRoles: [],
   skills: [
     "Python", "FastAPI", "TypeScript", "Node.js", "React", "LangChain", 
     "LLM Integration", "Playwright", "Docker", "PostgreSQL", "TailwindCSS", 
@@ -15,7 +17,7 @@ export const DEFAULT_CANDIDATE_PROFILE: CandidateProfile = {
   yearsExperience: 6,
   openToRelocation: true,
   requireVisaSponsorship: true,
-  targetCountries: ["Germany", "Singapore", "Australia", "Netherlands", "Japan", "United States"],
+  targetCountries: [],
   summary: "Experienced Full Stack & AI Software Engineer with 6+ years of hands-on expertise building production-ready distributed microservices, LLM orchestration pipelines, and scalable enterprise web apps. Proven track record leading agile cross-functional engineering teams, optimizing API performance by 40%, and implementing automated workflows.",
   experience: [
     {

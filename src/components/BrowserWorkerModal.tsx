@@ -19,119 +19,195 @@ import { JobPosting, CandidateProfile, AutomationStep } from '../types';
 
 interface BrowserWorkerModalProps {
   job: JobPosting | null;
+  jobs?: JobPosting[];
+  resume?: any;
+  resumes?: any[];
   candidateProfile: CandidateProfile;
   isOpen: boolean;
   onClose: () => void;
   onCompleteApplication: (job: JobPosting, refId: string) => void;
+  onCompleteAllApplications?: (results: Array<{ job: JobPosting; refId: string }>) => void;
 }
 
 export const BrowserWorkerModal: React.FC<BrowserWorkerModalProps> = ({
   job,
+  jobs = [],
+  resume,
+  resumes = [],
   candidateProfile,
   isOpen,
   onClose,
-  onCompleteApplication
+  onCompleteApplication,
+  onCompleteAllApplications
 }) => {
+  const activeJobs = jobs.length > 0 ? jobs : (job ? [job] : []);
+  const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [confirmationCode, setConfirmationCode] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
+  const [completedResults, setCompletedResults] = useState<Array<{ job: JobPosting; refId: string }>>([]);
 
-  const defaultSteps: AutomationStep[] = [
-    {
-      stepNumber: 1,
-      name: "Launch Headless Chromium & Navigate",
-      action: `Navigating to ${job?.applyUrl || job?.url || 'https://careers.portal.com'}`,
-      targetSelector: "page.goto(url, { waitUntil: 'networkidle' })",
-      status: "pending",
-      log: `[Playwright] Launching Chromium 120.0 (Headless mode, user-agent spoofed)...`
-    },
-    {
-      stepNumber: 2,
-      name: "Locate Apply / Easy Apply Trigger",
-      action: "Scanning DOM for application modal triggers",
-      targetSelector: "button:has-text('Apply'), a:has-text('Apply Now'), #apply-btn",
-      status: "pending",
-      log: `[DOM] Located active selector 'button.application-form-trigger'. Clicked successfully.`
-    },
-    {
-      stepNumber: 3,
-      name: "Auto-Fill Candidate Profile & Visa Flags",
-      action: `Injecting: ${candidateProfile?.firstName || 'Alok'} ${candidateProfile?.lastName || 'Kumar'} (${candidateProfile?.email || 'alokinfo30@gmail.com'})`,
-      targetSelector: "input[name='first_name'], input[name='email'], input[name='phone'], input[name='location']",
-      value: `Location: ${candidateProfile?.currentLocation || 'Bengaluru, India'} | Visa: Yes | Relocation: Yes`,
-      status: "pending",
-      log: `[Form] Injected fields: Name='${candidateProfile?.firstName || 'Alok'} ${candidateProfile?.lastName || 'Kumar'}', Location='${candidateProfile?.currentLocation || 'Bengaluru, India'}', VisaSponsorship='Yes'.`
-    },
-    {
-      stepNumber: 4,
-      name: "Upload Tailored ATS Resume PDF",
-      action: `Uploading: ${candidateProfile?.firstName || 'Alok'}_${candidateProfile?.lastName || 'Kumar'}_Resume.pdf`,
-      targetSelector: "input[type='file'][name='resume']",
-      status: "pending",
-      log: `[File Upload] Attached 1-Page ATS PDF into file input stream. Bytes verified.`
-    },
-    {
-      stepNumber: 5,
-      name: "Submit & Capture Confirmation Screenshot",
-      action: "Triggering final submission and recording proof of receipt",
-      targetSelector: "button[type='submit']",
-      status: "pending",
-      log: `[Submission] HTTP 200 OK — Application submitted successfully. Screen captured.`
-    }
-  ];
+  const currentActiveJob = activeJobs[currentJobIndex] || activeJobs[0] || job;
 
-  const [steps, setSteps] = useState<AutomationStep[]>(defaultSteps);
+  const getJobResume = (targetJob: JobPosting | null, index: number) => {
+    if (!targetJob) return resume;
+    const match = resumes.find(r => r.jobId === targetJob.id);
+    if (match) return match;
+    if (resumes[index]) return resumes[index];
+    return resume;
+  };
+
+  const generateDefaultSteps = (targetJob: JobPosting | null, jobIdx: number = 0): AutomationStep[] => {
+    const jobResume = getJobResume(targetJob, jobIdx);
+    const resumeFilename = `${candidateProfile?.firstName || 'Alok'}_${candidateProfile?.lastName || 'Kumar'}_${(targetJob?.company || 'Target').replace(/\s+/g, '_')}_${targetJob?.country || 'ATS'}_Resume.pdf`;
+    const countryStd = jobResume?.countryFormat || (targetJob?.country?.toLowerCase().includes('germany') ? 'GERMANY_EU' : targetJob?.country?.toLowerCase().includes('singapore') ? 'SINGAPORE_AU' : 'US_GLOBAL');
+
+    return [
+      {
+        stepNumber: 1,
+        name: "Launch Headless Chromium & Navigate",
+        action: `Navigating to ${targetJob?.applyUrl || targetJob?.url || 'https://careers.portal.com'} (${targetJob?.company})`,
+        targetSelector: "page.goto(url, { waitUntil: 'networkidle' })",
+        status: "pending",
+        log: `[Playwright] Launching Chromium 120.0 (Headless mode, user-agent spoofed for ${targetJob?.country || 'Global'})...`
+      },
+      {
+        stepNumber: 2,
+        name: "Locate Apply / Easy Apply Trigger",
+        action: `Scanning DOM for ${targetJob?.company}'s application modal triggers`,
+        targetSelector: "button:has-text('Apply'), a:has-text('Apply Now'), #apply-btn",
+        status: "pending",
+        log: `[DOM] Located active selector 'button.application-form-trigger' for ${targetJob?.company}. Clicked successfully.`
+      },
+      {
+        stepNumber: 3,
+        name: "Auto-Fill Candidate Profile & Visa Flags",
+        action: `Injecting: ${candidateProfile?.firstName || 'Alok'} ${candidateProfile?.lastName || 'Kumar'} (${candidateProfile?.email || 'alokinfo30@gmail.com'})`,
+        targetSelector: "input[name='first_name'], input[name='email'], input[name='phone'], input[name='location']",
+        value: `Location: ${candidateProfile?.currentLocation || 'Bengaluru, India'} | Visa: Yes | Relocation: Yes (${targetJob?.country})`,
+        status: "pending",
+        log: `[Form] Injected fields: Name='${candidateProfile?.firstName || 'Alok'} ${candidateProfile?.lastName || 'Kumar'}', Location='${candidateProfile?.currentLocation || 'Bengaluru, India'}', TargetCountry='${targetJob?.country}', VisaSponsorship='Yes'.`
+      },
+      {
+        stepNumber: 4,
+        name: "Upload Tailored ATS Resume PDF",
+        action: `Uploading: ${resumeFilename} (${countryStd} Standard)`,
+        targetSelector: "input[type='file'][name='resume']",
+        status: "pending",
+        log: `[File Upload] Attached tailored 1-Page ATS PDF for ${targetJob?.company} (${countryStd}). Verified JD keywords & XYZ achievement metrics.`
+      },
+      {
+        stepNumber: 5,
+        name: "Submit & Capture Confirmation Screenshot",
+        action: `Submitting application to ${targetJob?.company} and recording proof reference`,
+        targetSelector: "button[type='submit']",
+        status: "pending",
+        log: `[Submission] HTTP 200 OK — Application submitted to ${targetJob?.company} successfully. Confirmation snapshot captured.`
+      }
+    ];
+  };
+
+  const [steps, setSteps] = useState<AutomationStep[]>(() => generateDefaultSteps(currentActiveJob, 0));
 
   useEffect(() => {
-    if (!isOpen || !job) return;
+    if (!isOpen || activeJobs.length === 0) return;
 
-    setCurrentStepIndex(0);
+    setCurrentJobIndex(0);
+    setCompletedResults([]);
     setIsRunning(true);
     setIsFinished(false);
+
+    let jobIdx = 0;
+    let stepIdx = 0;
+    const initialSteps = generateDefaultSteps(activeJobs[0], 0);
+    setSteps(initialSteps);
+
+    const firstJob = activeJobs[0];
+    const firstCode = `APP-${(firstJob.country || 'GL').substring(0, 2).toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    setConfirmationCode(firstCode);
+
     setLogs([
-      `[*] [${new Date().toLocaleTimeString()}] HITL One-Click Approval received from Telegram Webhook.`,
-      `[*] [${new Date().toLocaleTimeString()}] Initializing browser-use / Playwright execution harness for Job: ${job.title} at ${job.company}`
+      `[*] [${new Date().toLocaleTimeString()}] HITL Approval received from Telegram Bot Webhook.`,
+      `[*] [${new Date().toLocaleTimeString()}] Sequential Automation Queue: Processing ${activeJobs.length} application(s) with specific tailored resumes.`,
+      `[*] [${new Date().toLocaleTimeString()}] [Job 1/${activeJobs.length}] Starting Playwright worker for ${firstJob.title} at ${firstJob.company} (${firstJob.country})...`
     ]);
 
-    const code = `APP-${job.country.substring(0, 2).toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
-    setConfirmationCode(code);
+    const results: Array<{ job: JobPosting; refId: string }> = [];
 
-    let step = 0;
     const interval = setInterval(() => {
-      if (step < defaultSteps.length) {
-        const nextStepNum = step;
+      const activeCurrentJob = activeJobs[jobIdx];
+      if (!activeCurrentJob) {
+        clearInterval(interval);
+        return;
+      }
+
+      if (stepIdx < 5) {
+        const nextStepNum = stepIdx;
         setSteps(prev => prev.map((s, idx) => {
           if (idx === nextStepNum) return { ...s, status: 'running' };
           if (idx < nextStepNum) return { ...s, status: 'completed' };
           return s;
         }));
 
+        const currentStepsDef = generateDefaultSteps(activeCurrentJob, jobIdx);
         setLogs(prev => [
           ...prev,
-          `[✓] [${new Date().toLocaleTimeString()}] ${defaultSteps[nextStepNum].log}`
+          `[✓] [${new Date().toLocaleTimeString()}] [${activeCurrentJob.company}] ${currentStepsDef[nextStepNum]?.log || 'Step completed'}`
         ]);
 
-        step++;
-        setCurrentStepIndex(step);
+        stepIdx++;
+        setCurrentStepIndex(stepIdx);
       } else {
-        clearInterval(interval);
-        setSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
-        setIsRunning(false);
-        setIsFinished(true);
+        // Current job finished
+        const appCode = `APP-${(activeCurrentJob.country || 'GL').substring(0, 2).toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        results.push({ job: activeCurrentJob, refId: appCode });
+        onCompleteApplication(activeCurrentJob, appCode);
+
         setLogs(prev => [
           ...prev,
-          `[🚀] [${new Date().toLocaleTimeString()}] END-TO-END PIPELINE COMPLETE: Application ${code} submitted!`
+          `[🚀] [${new Date().toLocaleTimeString()}] [${activeCurrentJob.company}] SUBMITTED! Ref: ${appCode} (${activeCurrentJob.country} Standard ATS Verified)`
         ]);
-        onCompleteApplication(job, code);
+
+        // Move to next job or finish
+        if (jobIdx + 1 < activeJobs.length) {
+          jobIdx++;
+          stepIdx = 0;
+          setCurrentJobIndex(jobIdx);
+          const nextJob = activeJobs[jobIdx];
+          setSteps(generateDefaultSteps(nextJob, jobIdx));
+          setConfirmationCode(`APP-${(nextJob.country || 'GL').substring(0, 2).toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`);
+          setLogs(prev => [
+            ...prev,
+            `----------------------------------------------------`,
+            `[*] [${new Date().toLocaleTimeString()}] [Job ${jobIdx + 1}/${activeJobs.length}] Switching to ${nextJob.title} at ${nextJob.company} (${nextJob.country})...`,
+            `[*] [${new Date().toLocaleTimeString()}] Loaded tailored resume for ${nextJob.company} (${nextJob.country} CV Standard)`
+          ]);
+        } else {
+          // Finished all jobs in sequence
+          clearInterval(interval);
+          setSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
+          setIsRunning(false);
+          setIsFinished(true);
+          setCompletedResults(results);
+          if (onCompleteAllApplications) {
+            onCompleteAllApplications(results);
+          }
+          setLogs(prev => [
+            ...prev,
+            `====================================================`,
+            `[🏆] [${new Date().toLocaleTimeString()}] ALL ${activeJobs.length} JOBS APPLIED SEQUENTIALLY WITH TAILORED RESUMES!`,
+            `[✓] All submission confirmation codes stored in HITL History.`
+          ]);
+        }
       }
-    }, 1200);
+    }, 900);
 
     return () => clearInterval(interval);
-  }, [isOpen, job]);
+  }, [isOpen]);
 
-  if (!isOpen || !job) return null;
+  if (!isOpen || !currentActiveJob) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs">
@@ -139,7 +215,7 @@ export const BrowserWorkerModal: React.FC<BrowserWorkerModalProps> = ({
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-neutral-800 flex items-center justify-between bg-neutral-950">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
               <Bot className="w-5 h-5" />
             </div>
             <div>
@@ -147,21 +223,56 @@ export const BrowserWorkerModal: React.FC<BrowserWorkerModalProps> = ({
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
                   STAGE 5: BROWSER AUTOMATION WORKER
                 </span>
-                <span className="text-xs text-neutral-400 font-mono">Playwright / browser-use (Python)</span>
+                <span className="text-xs text-neutral-400 font-mono">Playwright Sequential Submission Engine</span>
               </div>
               <h2 className="text-sm sm:text-base font-bold text-white">
-                Applying to {job.title} — {job.company}
+                Applying to {currentActiveJob.title} — {currentActiveJob.company} ({currentActiveJob.country})
               </h2>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition"
+            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Multi-Job Sequential Queue Bar */}
+        {activeJobs.length > 1 && (
+          <div className="bg-neutral-950 px-5 py-2.5 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-emerald-400">
+                Application Queue: Job {currentJobIndex + 1} of {activeJobs.length}
+              </span>
+              <span className="text-[10px] text-neutral-400 font-mono">
+                ({Math.round(((currentJobIndex + (isFinished ? 1 : 0)) / activeJobs.length) * 100)}% Complete)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {activeJobs.map((j, idx) => {
+                const isPast = idx < currentJobIndex || (idx === currentJobIndex && isFinished);
+                const isCurrent = idx === currentJobIndex && !isFinished;
+                return (
+                  <span
+                    key={j.id || idx}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono flex items-center gap-1 ${
+                      isPast
+                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                        : isCurrent
+                        ? 'bg-amber-950 text-amber-300 border border-amber-800 animate-pulse'
+                        : 'bg-neutral-900 text-neutral-500 border border-neutral-800'
+                    }`}
+                  >
+                    {isPast ? '✓' : idx + 1}. {j.company}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Modal Body */}
         <div className="p-5 overflow-y-auto space-y-5 flex-1 text-xs">

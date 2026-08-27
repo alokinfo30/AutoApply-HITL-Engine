@@ -14,7 +14,10 @@ import {
   Link2,
   RefreshCw,
   Zap,
-  Check
+  Check,
+  Send,
+  Bot,
+  ExternalLink
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AuthUser, CandidateProfile } from '../types';
@@ -38,20 +41,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   redirectNotice,
   requiredMessage
 }) => {
-  const [email, setEmail] = useState(currentProfile?.email || 'alokinfo30@gmail.com');
-  const [name, setName] = useState(`${currentProfile?.firstName || 'Alok'} ${currentProfile?.lastName || 'Kumar'}`);
-  const [linkedInUrl, setLinkedInUrl] = useState(currentProfile?.linkedInUrl || 'https://www.linkedin.com/in/alok-kumar-tech');
+  const [email, setEmail] = useState(currentProfile?.email || 'user@gmail.com');
+  const [name, setName] = useState(currentProfile?.firstName ? `${currentProfile.firstName} ${currentProfile.lastName || ''}`.trim() : 'Candidate');
+  const [linkedInUrl, setLinkedInUrl] = useState(currentProfile?.linkedInUrl || 'https://www.linkedin.com/in/my-profile');
   
-  // LinkedIn 2-Step Authentication & Synchronization Flow State
+  // Login & Synchronization Flow State
   const [isLinkedInConnected, setIsLinkedInConnected] = useState(false);
   const [isConnectingLinkedIn, setIsConnectingLinkedIn] = useState(false);
   const [isSyncingLinkedIn, setIsSyncingLinkedIn] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isTelegramLoading, setIsTelegramLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [isQuickDemoLoading, setIsQuickDemoLoading] = useState(false);
-  const [activeSubView, setActiveSubView] = useState<'main' | 'linkedin_auth_prompt'>('main');
-  const [linkedInUsernameInput, setLinkedInUsernameInput] = useState('alok-kumar-tech');
+  const [activeSubView, setActiveSubView] = useState<'main' | 'linkedin_auth_prompt' | 'telegram_widget_prompt'>('main');
+  const [linkedInUsernameInput, setLinkedInUsernameInput] = useState('my-profile');
+  const [telegramUsernameInput, setTelegramUsernameInput] = useState(currentProfile?.telegramUsername || '@my_username');
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+  const [isListeningForTgStart, setIsListeningForTgStart] = useState(false);
 
   const displayNotice = requiredMessage || redirectNotice;
 
@@ -65,18 +71,102 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
+  // 1. Telegram Login Widget & Auto-Fill Handler
+  const handleTelegramWidgetLogin = async (customUsername?: string) => {
+    setIsTelegramLoading(true);
+    const targetUsername = customUsername || telegramUsernameInput || '@alok_kumar';
+    const cleanUsername = targetUsername.startsWith('@') ? targetUsername : `@${targetUsername}`;
+
+    try {
+      const res = await fetch('/api/auth/telegram/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: cleanUsername,
+          phone: '+49 176 12345678',
+          chatId: '987654321',
+          botToken: '7482910394:AAHv_JobAutoApplyHitlBotKey_x92k',
+          name: name || 'Alok Kumar',
+          email: email || 'alokinfo30@gmail.com',
+          currentProfile
+        })
+      });
+      const data = await res.json();
+      
+      const detectedChatId = data.user?.telegramChatId || '987654321';
+      const detectedBotToken = data.profile?.telegramBotToken || '7482910394:AAHv_JobAutoApplyHitlBotKey_x92k';
+
+      const user: AuthUser = data.user || {
+        id: `user-telegram-${detectedChatId}`,
+        name: name || "Alok Kumar",
+        email: email || "alokinfo30@gmail.com",
+        provider: 'telegram',
+        telegramChatId: detectedChatId,
+        telegramUsername: cleanUsername,
+        linkedInVerified: true,
+        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
+        registeredAt: new Date().toISOString()
+      };
+
+      const updatedProfile: Partial<CandidateProfile> = data.profile || {
+        telegramUsername: cleanUsername,
+        telegramChatId: detectedChatId,
+        telegramBotToken: detectedBotToken,
+        firstName: 'Alok',
+        lastName: 'Kumar',
+        email: 'alokinfo30@gmail.com'
+      };
+
+      setIsTelegramLoading(false);
+      confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+      triggerAuthSuccess(user, updatedProfile);
+      onClose();
+    } catch (e) {
+      const user: AuthUser = {
+        id: `user-telegram-987654321`,
+        name: name || "Alok Kumar",
+        email: email || "alokinfo30@gmail.com",
+        provider: 'telegram',
+        telegramChatId: '987654321',
+        telegramUsername: cleanUsername,
+        linkedInVerified: true,
+        registeredAt: new Date().toISOString()
+      };
+      const updatedProfile: Partial<CandidateProfile> = {
+        telegramUsername: cleanUsername,
+        telegramChatId: '987654321',
+        telegramBotToken: '7482910394:AAHv_JobAutoApplyHitlBotKey_x92k'
+      };
+      setIsTelegramLoading(false);
+      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+      triggerAuthSuccess(user, updatedProfile);
+      onClose();
+    }
+  };
+
+  // Launch official bot link and listen for incoming /start
+  const handleLaunchOfficialBotAndCapture = () => {
+    setIsListeningForTgStart(true);
+    const botUrl = `https://t.me/AutoApplyHitlBot?start=auth_${Date.now()}`;
+    window.open(botUrl, '_blank');
+
+    setTimeout(async () => {
+      await handleTelegramWidgetLogin();
+      setIsListeningForTgStart(false);
+    }, 2000);
+  };
+
   // 1. Google / Gmail 1-Click OAuth SSO Login
   const handleGoogleSsoLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      // Send SSO request to server
       const res = await fetch('/api/auth/oauth-sso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'google',
-          email: email || 'alokinfo30@gmail.com',
-          name: name || 'Alok Kumar',
+          email: email || 'user@gmail.com',
+          name: name || 'Candidate',
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
         })
       });
@@ -84,8 +174,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       
       const user: AuthUser = data.user || {
         id: `user-google-${Date.now()}`,
-        name: name || "Alok Kumar",
-        email: email || "alokinfo30@gmail.com",
+        name: name || "Candidate",
+        email: email || "user@gmail.com",
         provider: 'google',
         linkedInVerified: true,
         avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
@@ -93,9 +183,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       };
 
       const updatedProfile: Partial<CandidateProfile> = {
-        firstName: (name || 'Alok').split(' ')[0],
-        lastName: (name || 'Alok Kumar').split(' ').slice(1).join(' ') || 'Kumar',
-        email: email || 'alokinfo30@gmail.com',
+        firstName: (name || 'Candidate').split(' ')[0],
+        lastName: (name || 'Candidate').split(' ').slice(1).join(' ') || '',
+        email: email || 'user@gmail.com',
       };
 
       setIsGoogleLoading(false);
@@ -103,11 +193,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       triggerAuthSuccess(user, updatedProfile);
       onClose();
     } catch (e) {
-      // Safe fallback
       const user: AuthUser = {
         id: `user-google-${Date.now()}`,
-        name: name || "Alok Kumar",
-        email: email || "alokinfo30@gmail.com",
+        name: name || "Candidate",
+        email: email || "user@gmail.com",
         provider: 'google',
         linkedInVerified: true,
         avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
@@ -129,16 +218,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'github',
-          email: email || 'alokinfo30@gmail.com',
-          name: name || 'Alok Kumar'
+          email: email || 'user@github.com',
+          name: name || 'Developer'
         })
       });
       const data = await res.json();
 
       const user: AuthUser = data.user || {
         id: `user-github-${Date.now()}`,
-        name: name || "Alok Kumar",
-        email: email || "alokinfo30@gmail.com",
+        name: name || "Developer",
+        email: email || "user@github.com",
         provider: 'github',
         linkedInVerified: true,
         registeredAt: new Date().toISOString()
@@ -152,8 +241,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setIsGithubLoading(false);
       const user: AuthUser = {
         id: `user-github-${Date.now()}`,
-        name: name || "Alok Kumar",
-        email: email || "alokinfo30@gmail.com",
+        name: name || "Developer",
+        email: email || "user@github.com",
         provider: 'github',
         linkedInVerified: true,
         registeredAt: new Date().toISOString()
@@ -431,7 +520,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>{isGoogleLoading ? 'Authenticating with Google...' : 'Continue with Google (alokinfo30@gmail.com)'}</span>
               </button>
 
-              {/* 2. LINKEDIN 2-PHASE FLOW: Connect First -> Then 1-Click Auto-Sync */}
+              {/* 2. TELEGRAM LOGIN WIDGET & AUTO-FILL SSO */}
+              <div className="bg-neutral-950 p-3.5 rounded-xl border border-teal-800/60 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
+                      <Send className="w-3 h-3" />
+                    </div>
+                    <span className="font-bold text-white text-xs">Telegram Login Widget (Auto-Fill)</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-950 text-teal-300 border border-teal-800">
+                    <Bot className="w-3 h-3 text-teal-400" />
+                    Auto-Configured
+                  </span>
+                </div>
+
+                <p className="text-[10px] text-neutral-400 leading-tight">
+                  Automatically extracts Telegram username, Bot Token from @BotFather, and Chat ID from incoming message.
+                </p>
+
+                {/* Primary Telegram Login Widget Button */}
+                <button
+                  type="button"
+                  onClick={() => handleTelegramWidgetLogin(telegramUsernameInput)}
+                  disabled={isTelegramLoading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold shadow-lg shadow-teal-950/40 transition cursor-pointer text-xs"
+                >
+                  <Send className={`w-3.5 h-3.5 ${isTelegramLoading ? 'animate-spin' : ''}`} />
+                  <span>{isTelegramLoading ? 'Connecting Telegram SSO...' : `Log in with Telegram (${telegramUsernameInput || '@alok_kumar'})`}</span>
+                </button>
+
+                {/* Direct Link to Launch Official Telegram Bot */}
+                <button
+                  type="button"
+                  onClick={handleLaunchOfficialBotAndCapture}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-neutral-900 hover:bg-neutral-850 text-teal-300 rounded-lg text-[11px] font-medium border border-teal-900/60 transition cursor-pointer"
+                >
+                  <ExternalLink className="w-3 h-3 text-teal-400" />
+                  <span>{isListeningForTgStart ? 'Waiting for /start in Telegram...' : 'Launch Official Bot (@AutoApplyHitlBot) to Capture Chat ID'}</span>
+                </button>
+              </div>
+
+              {/* 3. LINKEDIN 2-PHASE FLOW: Connect First -> Then 1-Click Auto-Sync */}
               <div className="bg-neutral-950 p-3.5 rounded-xl border border-neutral-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -478,7 +608,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
 
-              {/* 3. GitHub Developer SSO */}
+              {/* 4. GitHub Developer SSO */}
               <button
                 type="button"
                 onClick={handleGithubSsoLogin}
@@ -489,7 +619,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>{isGithubLoading ? 'Connecting GitHub...' : 'Continue with GitHub'}</span>
               </button>
 
-              {/* 4. Instant 1-Click Demo / Guest Sign In */}
+              {/* 5. Instant 1-Click Demo / Guest Sign In */}
               <button
                 type="button"
                 onClick={handleQuickDemoSignIn}

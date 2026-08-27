@@ -5,6 +5,8 @@ export interface CandidateProfile {
   email: string;
   phone: string;
   currentLocation: string;
+  nativeCountry?: string;
+  citizenship?: string;
   targetRoles: string[];
   skills: string[];
   yearsExperience: number;
@@ -183,12 +185,16 @@ export interface MockInterviewItem {
 
 // Job Portal Integration
 export interface JobPortalAccount {
-  portal: 'LinkedIn' | 'Indeed' | 'Glassdoor' | 'Wellfound' | 'Monster' | 'ZipRecruiter';
+  portal: 'LinkedIn' | 'Gmail' | 'Indeed' | 'Glassdoor' | 'Wellfound' | 'Monster' | 'ZipRecruiter' | string;
   usernameOrEmail: string;
   connected: boolean;
   lastScraped?: string;
   autoApplySync: boolean;
   statusMessage?: string;
+  authProvider?: 'oauth2' | 'cookie' | 'api_key';
+  oauthVerified?: boolean;
+  scopes?: string[];
+  lastAuthenticated?: string;
 }
 
 export interface PipelineStats {
@@ -333,7 +339,10 @@ export interface AuthUser {
   name: string;
   email: string;
   avatarUrl?: string;
-  provider: 'linkedin' | 'google' | 'github' | 'credentials';
+  phone?: string;
+  provider: 'linkedin' | 'google' | 'github' | 'credentials' | 'telegram';
+  telegramChatId?: string;
+  telegramUsername?: string;
   linkedInVerified: boolean;
   registeredAt: string;
 }

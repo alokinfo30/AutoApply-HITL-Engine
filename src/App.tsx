@@ -26,6 +26,7 @@ import { ScheduledNotificationModal } from './components/ScheduledNotificationMo
 import { SocialShareModal } from './components/SocialShareModal';
 import { UniversalJobPortalInjector } from './components/UniversalJobPortalInjector';
 import { AutonomousAutoPilotModal } from './components/AutonomousAutoPilotModal';
+import { ApplicationSummaryDashboard } from './components/ApplicationSummaryDashboard';
 import { X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -41,6 +42,8 @@ import {
   AutoPilotConfig
 } from './types';
 import { DEFAULT_CANDIDATE_PROFILE, INITIAL_SAMPLE_JOBS } from './data/defaultData';
+import { calculateProfileCompletion, isCandidateNativeCountry } from './utils/profileValidation';
+import { CandidateProfileModal } from './components/CandidateProfileModal';
 
 export default function App() {
   // Navigation & View Tabs
@@ -68,6 +71,7 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSocialShareOpen, setIsSocialShareOpen] = useState(false);
   const [isAutoPilotModalOpen, setIsAutoPilotModalOpen] = useState(false);
+  const [showSummaryDashboard, setShowSummaryDashboard] = useState(false);
   const [mockInterviewsCompletedCount, setMockInterviewsCompletedCount] = useState<number>(0);
 
   // Candidate Profile State (Persisted in server & localStorage with strict user data isolation)
@@ -94,13 +98,35 @@ export default function App() {
   });
 
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(INITIAL_SAMPLE_JOBS[0]);
+  const [selectedJobs, setSelectedJobs] = useState<JobPosting[]>([INITIAL_SAMPLE_JOBS[0]]);
   const [stage1TargetCountries, setStage1TargetCountries] = useState<string[]>(
     candidateProfile?.targetCountries?.length ? candidateProfile.targetCountries : ['Germany', 'Singapore', 'Australia', 'United States']
   );
   const [selectedCountryStandards, setSelectedCountryStandards] = useState<string[]>(['Germany']);
 
+  // Diagnostic logging for country standards, target countries, and jobs state
+  useEffect(() => {
+    console.log('[App Stage 1/2] selectedCountryStandards state updated:', selectedCountryStandards);
+  }, [selectedCountryStandards]);
+
+  useEffect(() => {
+    console.log('[App Stage 1] stage1TargetCountries state updated:', stage1TargetCountries);
+  }, [stage1TargetCountries]);
+
+  useEffect(() => {
+    console.log('[App State] jobs count updated:', jobs.length);
+  }, [jobs.length]);
+
+  // Keep stage1TargetCountries synchronized when profile updates
+  useEffect(() => {
+    if (candidateProfile?.targetCountries && candidateProfile.targetCountries.length > 0) {
+      setStage1TargetCountries(candidateProfile.targetCountries);
+    }
+  }, [candidateProfile?.targetCountries]);
+
   // Stage 2 & 3 State
   const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null);
+  const [matchAnalyses, setMatchAnalyses] = useState<Record<string, MatchAnalysis>>({});
   const [generatedResumes, setGeneratedResumes] = useState<GeneratedResume[]>([]);
   const [activeResumeIndex, setActiveResumeIndex] = useState<number>(0);
 
@@ -271,7 +297,7 @@ export default function App() {
   };
 
   const handleAnalyzeJob = async (job: JobPosting) => {
-    // Strict Authentication Gate Check: User must be logged in to proceed to Stage 2
+    // 1. Strict Authentication Gate Check
     if (!authUser) {
       setSelectedJob(job);
       setAuthRequiredMessage("Authentication Required: Please log in or register with your Telegram / LinkedIn credentials to continue with Stage 2 (JD Parsing & CV Standard Selection).");
@@ -279,7 +305,32 @@ export default function App() {
       return;
     }
 
+    // 2. Profile 100% Completion Gate Check
+    const validation = calculateProfileCompletion(candidateProfile);
+    if (!validation.is100Percent) {
+      setSelectedJob(job);
+      setAuthRequiredMessage(`Profile Form Incomplete (${validation.percentage}% / 100%): Please complete your profile form 100% to unlock Stage 2. Missing: ${validation.missingRequirements.slice(0, 2).join(', ')}.`);
+      setIsProfileOpen(true);
+      return;
+    }
+
+    // 3. Target Roles & Target Countries Gate Check
+    if (!candidateProfile.targetRoles || candidateProfile.targetRoles.length === 0) {
+      setSelectedJob(job);
+      setAuthRequiredMessage("Target Roles Required: Please set at least one target role (e.g. Senior Full Stack Engineer, AI Systems Engineer) before proceeding.");
+      setIsProfileOpen(true);
+      return;
+    }
+
+    if (!candidateProfile.targetCountries || candidateProfile.targetCountries.length === 0) {
+      setSelectedJob(job);
+      setAuthRequiredMessage("Target Countries Required: Please configure at least one target country (Domestic or Global) before proceeding.");
+      setIsProfileOpen(true);
+      return;
+    }
+
     setSelectedJob(job);
+    setSelectedJobs([job]);
     setIsAnalyzing(true);
     setCurrentStage(2);
     setUnlockedMaxStage(prev => Math.max(prev, 2));
@@ -319,6 +370,94 @@ export default function App() {
     }
   };
 
+  const handleBatchAnalyzeJobs = async (selectedJobsList: JobPosting[]) => {
+    if (!selectedJobsList || selectedJobsList.length === 0) return;
+    const primaryJob = selectedJobsList[0];
+
+    // 1. Strict Authentication Gate Check
+    if (!authUser) {
+      setSelectedJob(primaryJob);
+      setAuthRequiredMessage("Authentication Required: Please log in or register with your Telegram / LinkedIn credentials to continue with Stage 2 (JD Parsing & CV Standard Selection).");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    // 2. Profile 100% Completion Gate Check
+    const validation = calculateProfileCompletion(candidateProfile);
+    if (!validation.is100Percent) {
+      setSelectedJob(primaryJob);
+      setAuthRequiredMessage(`Profile Form Incomplete (${validation.percentage}% / 100%): Please complete your profile form 100% to unlock Stage 2. Missing: ${validation.missingRequirements.slice(0, 2).join(', ')}.`);
+      setIsProfileOpen(true);
+      return;
+    }
+
+    // 3. Target Roles & Target Countries Gate Check
+    if (!candidateProfile.targetRoles || candidateProfile.targetRoles.length === 0) {
+      setSelectedJob(primaryJob);
+      setAuthRequiredMessage("Target Roles Required: Please set at least one target role (e.g. Senior Full Stack Engineer, AI Systems Engineer) before proceeding.");
+      setIsProfileOpen(true);
+      return;
+    }
+
+    if (!candidateProfile.targetCountries || candidateProfile.targetCountries.length === 0) {
+      setSelectedJob(primaryJob);
+      setAuthRequiredMessage("Target Countries Required: Please configure at least one target country (Domestic or Global) before proceeding.");
+      setIsProfileOpen(true);
+      return;
+    }
+
+    setSelectedJob(primaryJob);
+    setSelectedJobs(selectedJobsList);
+    setIsAnalyzing(true);
+    setCurrentStage(2);
+    setUnlockedMaxStage(prev => Math.max(prev, 2));
+    if (!completedStages.includes(1)) setCompletedStages(prev => [...prev, 1]);
+
+    // Extract all unique country standards from selected jobs
+    const uniqueCountries = Array.from(new Set(selectedJobsList.map(j => j.country || 'Germany')));
+    setSelectedCountryStandards(uniqueCountries);
+
+    try {
+      const res = await fetch("/api/gemini/parse-jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job: primaryJob,
+          jobs: selectedJobsList,
+          candidateProfile
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.analysis) {
+          setMatchAnalysis(data.analysis);
+        }
+        if (data.analyses) {
+          setMatchAnalyses(data.analyses);
+        }
+        setJobs(prev => prev.map(j => {
+          if (selectedJobsList.some(sj => sj.id === j.id)) {
+            const specificAnalysis = data.analyses?.[j.id] || (j.id === primaryJob.id ? data.analysis : null);
+            return {
+              ...j,
+              matchScore: specificAnalysis?.score || j.matchScore || Math.floor(88 + Math.random() * 10),
+              matchedKeywords: specificAnalysis?.matchedSkills || j.matchedKeywords || [],
+              missingKeywords: specificAnalysis?.skillGaps || j.missingKeywords || [],
+              status: 'matched'
+            };
+          }
+          return j;
+        }));
+      }
+    } catch (err) {
+      console.error("Error batch analyzing JDs:", err);
+    } finally {
+      setIsAnalyzing(false);
+      setCompletedStages(prev => Array.from(new Set([...prev, 2])));
+      setUnlockedMaxStage(prev => Math.max(prev, 3));
+    }
+  };
+
   // Handle stage selection with Auth Gate
   const handleStageSelect = (stage: StageId) => {
     if (stage > 1 && !authUser) {
@@ -329,7 +468,7 @@ export default function App() {
     setCurrentStage(stage);
   };
 
-  // 2. Generate ATS Resumes for Multiple Countries (Stage 2 -> Stage 3)
+  // 2. Generate ATS Resumes for Multiple Job Feeds & Multiple Countries (Stage 2 -> Stage 3)
   const handleGenerateResume = async () => {
     if (!selectedJob) return;
     setIsGenerating(true);
@@ -337,6 +476,25 @@ export default function App() {
     setUnlockedMaxStage(prev => Math.max(prev, 3));
 
     const targetStandards = selectedCountryStandards.length > 0 ? selectedCountryStandards : [selectedJob.country || 'Germany'];
+    const baseTargetJobs = selectedJobs.length > 0 ? selectedJobs : [selectedJob];
+
+    // Strictly filter jobs that match the selected country standards
+    const qualifyingJobs = baseTargetJobs.filter(j => {
+      const jCountry = (j.country || '').toLowerCase().trim();
+      const jLocation = (j.location || '').toLowerCase().trim();
+      return targetStandards.some(std => {
+        const sLow = std.toLowerCase().trim();
+        return jCountry.includes(sLow) || sLow.includes(jCountry) || jLocation.includes(sLow);
+      });
+    });
+
+    const targetJobs = qualifyingJobs.length > 0 ? qualifyingJobs : baseTargetJobs;
+    if (qualifyingJobs.length > 0 && qualifyingJobs.length !== selectedJobs.length) {
+      setSelectedJobs(targetJobs);
+      if (!targetJobs.some(j => j.id === selectedJob.id)) {
+        setSelectedJob(targetJobs[0]);
+      }
+    }
 
     try {
       const res = await fetch("/api/gemini/generate-multi-country-resumes", {
@@ -344,6 +502,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           job: selectedJob,
+          jobs: targetJobs,
           candidateProfile,
           targetCountries: targetStandards
         })
@@ -352,7 +511,12 @@ export default function App() {
       if (data.success && data.resumes && data.resumes.length > 0) {
         setGeneratedResumes(data.resumes);
         setActiveResumeIndex(0);
-        setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, status: 'resume_ready' } : j));
+        setJobs(prev => prev.map(j => {
+          if (targetJobs.some(tj => tj.id === j.id)) {
+            return { ...j, status: 'resume_ready' };
+          }
+          return j;
+        }));
       } else {
         // Fallback to single resume generator
         const singleRes = await fetch("/api/gemini/generate-resume", {
@@ -389,6 +553,18 @@ export default function App() {
   // 4. HITL Approval & Launch Browser Worker (Stage 4 -> Stage 5)
   const handleApproveApply = (job: JobPosting) => {
     setBotStatus('approved');
+    setSelectedJob(job);
+    setCurrentStage(5);
+    setUnlockedMaxStage(prev => Math.max(prev, 5));
+    setIsBrowserWorkerOpen(true);
+    setCompletedStages(prev => Array.from(new Set([...prev, 1, 2, 3, 4, 5])));
+  };
+
+  const handleApproveAll = (jobsToApply: JobPosting[]) => {
+    setBotStatus('approved');
+    if (jobsToApply.length > 0) {
+      setSelectedJob(jobsToApply[0]);
+    }
     setCurrentStage(5);
     setUnlockedMaxStage(prev => Math.max(prev, 5));
     setIsBrowserWorkerOpen(true);
@@ -475,35 +651,65 @@ export default function App() {
 
   // Add Custom Job
   const handleAddCustomJob = (newJob: Partial<JobPosting>) => {
+    const uniqueId = newJob.id || `custom-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const fullJob: JobPosting = {
-      id: `custom-${Date.now()}`,
+      id: uniqueId,
       title: newJob.title || "Software Engineer",
       company: newJob.company || "Company",
       location: newJob.location || "Remote",
       country: newJob.country || "Global",
       countryFormat: newJob.countryFormat || "US_GLOBAL",
-      visaSponsorship: "Verified Sponsored",
-      relocationAssistance: true,
-      postedDate: "Just now",
-      source: "RSS Feed",
+      visaSponsorship: newJob.visaSponsorship || "Verified Sponsored",
+      relocationAssistance: newJob.relocationAssistance !== undefined ? newJob.relocationAssistance : true,
+      postedDate: newJob.postedDate || "Just now",
+      source: newJob.source || "RSS Feed",
       url: newJob.url || "https://example.com",
       applyUrl: newJob.applyUrl || newJob.url || "https://example.com",
       description: newJob.description || "",
       tags: newJob.tags || ["Custom", "Visa Sponsored"],
-      matchScore: 95,
+      matchScore: newJob.matchScore || 95,
       status: "discovered"
     };
 
-    setJobs(prev => [fullJob, ...prev]);
+    setJobs(prev => {
+      const filtered = prev.filter(j => j.id !== fullJob.id);
+      const next = [fullJob, ...filtered];
+      try {
+        localStorage.setItem('autoapply_jobs', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     setSelectedJob(fullJob);
     handleAnalyzeJob(fullJob);
   };
 
   // Full 1-Click End-to-End Pipeline Auto-Scan
   const handleRunAutoPipeline = async () => {
+    // 1. Strict Authentication Check
     if (!authUser) {
-      setAuthRequiredMessage("Please log in to run the automated pipeline journey.");
+      setAuthRequiredMessage("Authentication Required: Please log in or register with your Telegram / LinkedIn credentials to run the automation pipeline.");
       setIsAuthModalOpen(true);
+      return;
+    }
+
+    // 2. Profile 100% Completion Form Check
+    const validation = calculateProfileCompletion(candidateProfile);
+    if (!validation.is100Percent) {
+      setAuthRequiredMessage(`Profile Incomplete (${validation.percentage}% / 100%): Please complete your profile form 100% before running automation. Remaining: ${validation.missingRequirements.slice(0, 2).join(', ')}.`);
+      setIsProfileOpen(true);
+      return;
+    }
+
+    // 3. Roles and Countries Check
+    if (!candidateProfile.targetRoles || candidateProfile.targetRoles.length === 0) {
+      setAuthRequiredMessage("Target Roles Required: Please specify at least one target role (e.g. AI Engineer, Senior Full Stack) in your profile.");
+      setIsProfileOpen(true);
+      return;
+    }
+
+    if (!candidateProfile.targetCountries || candidateProfile.targetCountries.length === 0) {
+      setAuthRequiredMessage("Target Countries Required: Please configure at least one target destination or domestic country in your profile.");
+      setIsProfileOpen(true);
       return;
     }
 
@@ -588,12 +794,15 @@ export default function App() {
                 selectedJob={selectedJob}
                 onSelectJob={handleSelectJob}
                 onAnalyzeJob={handleAnalyzeJob}
+                onBatchAnalyzeJobs={handleBatchAnalyzeJobs}
                 onRefreshLiveFeed={handleRefreshLiveFeed}
                 onAddCustomJob={handleAddCustomJob}
                 isDiscovering={isDiscovering}
                 candidateProfile={candidateProfile}
                 onOpenProfileModal={() => setIsProfileOpen(true)}
                 onOpenPortalsModal={() => setIsPortalsOpen(true)}
+                onUpdateProfile={(updated) => setCandidateProfile(updated)}
+                authUser={authUser}
               />
             )}
 
@@ -601,7 +810,9 @@ export default function App() {
             {currentStage === 2 && (
               <JdMatchView
                 job={selectedJob}
+                jobs={selectedJobs}
                 matchAnalysis={matchAnalysis}
+                matchAnalyses={matchAnalyses}
                 selectedCountryStandards={selectedCountryStandards}
                 onChangeCountryStandards={setSelectedCountryStandards}
                 onProceedToResume={handleGenerateResume}
@@ -616,6 +827,7 @@ export default function App() {
             {currentStage === 3 && (
               <ResumeGeneratorView
                 job={selectedJob}
+                jobs={selectedJobs}
                 resumes={generatedResumes.length > 0 ? generatedResumes : (activeResume ? [activeResume] : [])}
                 activeResumeIndex={activeResumeIndex}
                 onSelectResumeIndex={setActiveResumeIndex}
@@ -630,11 +842,15 @@ export default function App() {
             {currentStage === 4 && (
               <TelegramHitlView
                 job={selectedJob}
+                jobs={selectedJobs}
                 resume={activeResume}
+                resumes={generatedResumes}
                 onApproveApply={handleApproveApply}
+                onApproveAll={handleApproveAll}
                 onSkipJob={handleSkipJob}
                 candidateProfile={candidateProfile}
                 botStatus={botStatus}
+                onUpdateProfile={(updated) => setCandidateProfile(prev => ({ ...prev, ...updated }))}
               />
             )}
 
@@ -667,17 +883,33 @@ export default function App() {
               </div>
             )}
 
-            {/* Stage 6: Interview Preparation Guide */}
+            {/* Stage 6: Interview Preparation Guide or Application Summary Dashboard */}
             {currentStage === 6 && (
-              <InterviewPrepView
-                job={selectedJob}
-                candidateProfile={candidateProfile}
-                onProceedToMockInterview={() => {
-                  setCurrentStage(7);
-                  setUnlockedMaxStage(prev => Math.max(prev, 7));
-                  setCompletedStages(prev => Array.from(new Set([...prev, 6])));
-                }}
-              />
+              showSummaryDashboard ? (
+                <ApplicationSummaryDashboard
+                  jobs={selectedJobs.length > 0 ? selectedJobs : (selectedJob ? [selectedJob] : [])}
+                  resumes={generatedResumes}
+                  candidateProfile={candidateProfile}
+                  onBackToStage6={() => setShowSummaryDashboard(false)}
+                  onProceedToMockInterview={(targetJob) => {
+                    if (targetJob) setSelectedJob(targetJob);
+                    setShowSummaryDashboard(false);
+                    setCurrentStage(7);
+                    setUnlockedMaxStage(prev => Math.max(prev, 7));
+                    setCompletedStages(prev => Array.from(new Set([...prev, 6])));
+                  }}
+                />
+              ) : (
+                <InterviewPrepView
+                  job={selectedJob}
+                  jobs={selectedJobs}
+                  candidateProfile={candidateProfile}
+                  onOpenSummaryDashboard={() => setShowSummaryDashboard(true)}
+                  onProceedToMockInterview={() => {
+                    setShowSummaryDashboard(true);
+                  }}
+                />
+              )
             )}
 
             {/* Stage 7: AI Voice Mock Interview Practice */}
@@ -801,6 +1033,9 @@ export default function App() {
       {/* Playwright Browser Worker Modal (Stage 5 Modal) */}
       <BrowserWorkerModal
         job={selectedJob}
+        jobs={selectedJobs}
+        resume={activeResume}
+        resumes={generatedResumes}
         candidateProfile={candidateProfile}
         isOpen={isBrowserWorkerOpen}
         onClose={() => setIsBrowserWorkerOpen(false)}
@@ -813,14 +1048,36 @@ export default function App() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onSaveProfile={(updated) => setCandidateProfile(updated)}
+        authUser={authUser}
+        onAuthenticated={(user, updatedProf) => {
+          setAuthUser(user);
+          if (updatedProf) {
+            setCandidateProfile(prev => ({ ...prev, ...updatedProf }));
+          }
+        }}
       />
 
-      {/* Job Portal Integration Modal (LinkedIn, Indeed, Wellfound, Glassdoor) */}
+      {/* Job Portal Integration Modal (LinkedIn, Gmail, Indeed, Wellfound, Glassdoor) */}
       <JobPortalIntegrationModal
         isOpen={isPortalsOpen}
         onClose={() => setIsPortalsOpen(false)}
-        onSyncTriggered={() => {
-          handleRefreshLiveFeed();
+        candidateProfile={candidateProfile}
+        authUser={authUser}
+        onUpdateProfile={(updated) => setCandidateProfile(updated)}
+        targetRoles={candidateProfile?.targetRoles}
+        targetCountries={candidateProfile?.targetCountries}
+        onSyncTriggered={(_portal, scrapedJobs) => {
+          if (Array.isArray(scrapedJobs) && scrapedJobs.length > 0) {
+            setJobs(prev => {
+              const existingIds = new Set(prev.map(j => j.id));
+              const newJobs = scrapedJobs.filter(j => !existingIds.has(j.id));
+              const merged = [...newJobs, ...prev];
+              localStorage.setItem('autoapply_jobs', JSON.stringify(merged));
+              return merged;
+            });
+          } else {
+            handleRefreshLiveFeed();
+          }
         }}
       />
 

@@ -131,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Play className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
-            <span>{isProcessing ? t('btn_pipeline_running') : t('btn_run_pipeline')}</span>
+            <span>{isProcessing ? 'Running Automation...' : 'Run Automation'}</span>
           </button>
 
           {/* Language Selector Dropdown */}

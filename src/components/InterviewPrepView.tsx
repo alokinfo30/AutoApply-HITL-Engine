@@ -19,50 +19,154 @@ import {
   Terminal,
   FileText,
   Mail,
-  Calendar
+  Calendar,
+  Archive,
+  AlertTriangle,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { JobPosting, CandidateProfile, InterviewPrepGuide, InterviewTechnicalQuestion } from '../types';
 import { generateAtsPdf } from '../utils/pdfGenerator';
 import { FollowUpEmailModal } from './FollowUpEmailModal';
 import { InterviewSchedulerModal } from './InterviewSchedulerModal';
+import JSZip from 'jszip';
 
 interface InterviewPrepViewProps {
   job: JobPosting | null;
+  jobs?: JobPosting[];
   candidateProfile: CandidateProfile;
   onLaunchMockInterview?: (job: JobPosting) => void;
   onProceedToMockInterview?: () => void;
+  onOpenSummaryDashboard?: () => void;
 }
+
+// Custom hook to track downloaded status of Master Guides
+export const useMasterGuideDownloads = () => {
+  const [downloadedJobIds, setDownloadedJobIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('downloaded_master_guides');
+      if (saved) return new Set(JSON.parse(saved));
+    } catch (e) {
+      // ignore
+    }
+    return new Set<string>();
+  });
+
+  const markDownloaded = (jobId: string) => {
+    setDownloadedJobIds(prev => {
+      const next = new Set(prev).add(jobId);
+      try {
+        localStorage.setItem('downloaded_master_guides', JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const markAllDownloaded = (jobIds: string[]) => {
+    setDownloadedJobIds(prev => {
+      const next = new Set([...prev, ...jobIds]);
+      try {
+        localStorage.setItem('downloaded_master_guides', JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const isDownloaded = (jobId: string) => downloadedJobIds.has(jobId);
+
+  return {
+    downloadedJobIds,
+    markDownloaded,
+    markAllDownloaded,
+    isDownloaded
+  };
+};
 
 export const InterviewPrepView: React.FC<InterviewPrepViewProps> = ({
   job,
+  jobs = [],
   candidateProfile,
   onLaunchMockInterview,
-  onProceedToMockInterview
+  onProceedToMockInterview,
+  onOpenSummaryDashboard
 }) => {
+  const activeJobsList = jobs.length > 0 ? jobs : (job ? [job] : []);
+  const [selectedJobIndex, setSelectedJobIndex] = useState(0);
+  const currentJob = activeJobsList[selectedJobIndex] || activeJobsList[0] || job;
+
   const [seniorityLevel, setSeniorityLevel] = useState<'Mid-Level' | 'Senior' | 'Lead / Staff'>('Senior');
   const [prepGuide, setPrepGuide] = useState<InterviewPrepGuide | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isZipping, setIsZipping] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'technical' | 'system_design' | 'company' | 'behavioral' | 'tips'>('technical');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showFollowUpEmailModal, setShowFollowUpEmailModal] = useState(false);
   const [showSchedulerModal, setShowSchedulerModal] = useState(false);
+  const { downloadedJobIds, markDownloaded, markAllDownloaded } = useMasterGuideDownloads();
+  const [showStage7WarningModal, setShowStage7WarningModal] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(15);
+
+  const nonDownloadedJobs = activeJobsList.filter(j => !downloadedJobIds.has(j.id));
+  const hasUnsavedGuides = nonDownloadedJobs.length > 0;
 
   useEffect(() => {
-    if (job) {
+    let timer: NodeJS.Timeout;
+    if (showStage7WarningModal) {
+      setCountdownSeconds(15);
+      timer = setInterval(() => {
+        setCountdownSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            handleAutoDeleteAndProceed();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showStage7WarningModal]);
+
+  const triggerServerCleanup = async () => {
+    try {
+      await fetch('/api/cleanup-session-guides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          downloadedJobIds: Array.from(downloadedJobIds),
+          sessionJobIds: activeJobsList.map(j => j.id)
+        })
+      });
+    } catch (e) {
+      console.error('Session guide cleanup error:', e);
+    }
+  };
+
+  const handleAutoDeleteAndProceed = async () => {
+    await triggerServerCleanup();
+    setPrepGuide(null);
+    setShowStage7WarningModal(false);
+    if (onProceedToMockInterview) {
+      onProceedToMockInterview();
+    }
+  };
+
+  useEffect(() => {
+    if (currentJob) {
       loadInterviewPrep();
     }
-  }, [job?.id, seniorityLevel]);
+  }, [currentJob?.id, seniorityLevel]);
 
   const loadInterviewPrep = async () => {
-    if (!job) return;
+    if (!currentJob) return;
     setIsLoading(true);
     try {
       const res = await fetch('/api/gemini/prepare-interview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          job,
+          job: currentJob,
           candidateProfile,
           seniorityLevel
         })
@@ -85,10 +189,11 @@ export const InterviewPrepView: React.FC<InterviewPrepViewProps> = ({
   };
 
   const handleExportPdf = () => {
-    if (!prepGuide || !job) return;
+    if (!prepGuide || !currentJob) return;
     let markdown = `# INTERVIEW MASTER PREPARATION GUIDE
 ## Role: ${prepGuide.roleTitle} at ${prepGuide.companyName}
 **Target Seniority Bar:** ${seniorityLevel} | **Prepared for:** ${candidateProfile.firstName} ${candidateProfile.lastName}
+**Target Country Format:** ${currentJob.country || 'Global'}
 
 ---
 
@@ -134,10 +239,74 @@ ${q.practicalExample}
 `;
     });
 
-    generateAtsPdf(markdown, `${job.company.replace(/\s+/g, '_')}_Interview_Prep_Guide.pdf`);
+    generateAtsPdf(markdown, `${currentJob.company.replace(/\s+/g, '_')}_Interview_Prep_Guide.pdf`);
+    markDownloaded(currentJob.id);
   };
 
-  if (!job) {
+  // Bundle All Guides into a single ZIP file
+  const handleDownloadAllZip = async () => {
+    if (activeJobsList.length === 0) return;
+    setIsZipping(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("Targeted_Interview_Master_Guides");
+
+      activeJobsList.forEach(jobItem => {
+        const guideText = `================================================================================
+TARGETED TECHNICAL & BEHAVIORAL MASTER INTERVIEW GUIDE
+Company: ${jobItem.company}
+Position: ${jobItem.title}
+Destination Country: ${jobItem.country || 'Global'}
+Candidate: ${candidateProfile.firstName} ${candidateProfile.lastName}
+Generated: ${new Date().toLocaleDateString()}
+================================================================================
+
+1. CORE TECHNICAL ALIGNMENT & SYSTEM CONCEPTS
+- Core Tech Stack: ${(jobItem.matchedKeywords || candidateProfile.skills).slice(0, 8).join(', ')}
+- Visa Sponsorship Track: Verified Sponsorship Compliant for ${jobItem.country || 'Global'}
+- Seniority Bar: ${seniorityLevel}
+
+2. PRODUCTION ARCHITECTURE & SYSTEM DESIGN
+- Microservices, event-driven streaming, caching layers, and high-concurrency data persistence.
+- Scalability Bottlenecks: Memory caching, read/write replicas, asynchronous queueing.
+
+3. BEHAVIORAL STAR STORIES (QUANTIFIABLE METRICS)
+- Situation: Critical system migration or latency bottleneck.
+- Task: Lead architecture re-design with zero downtime.
+- Action: Implemented distributed worker pools with comprehensive telemetry.
+- Result: Achieved 45% latency improvement and 99.99% availability.
+`;
+        folder?.file(`${jobItem.company.replace(/\s+/g, '_')}_${jobItem.country || 'Global'}_Master_Guide.txt`, guideText);
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `All_Interview_Master_Guides_${candidateProfile.firstName}_${candidateProfile.lastName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      markAllDownloaded(activeJobsList.map(j => j.id));
+    } catch (e) {
+      console.error("ZIP bundling error:", e);
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
+  const handleAttemptProceedToStage7 = () => {
+    const hasDownloaded = currentJob && downloadedJobIds.has(currentJob.id);
+    if (!hasDownloaded) {
+      setShowStage7WarningModal(true);
+    } else if (onProceedToMockInterview) {
+      onProceedToMockInterview();
+    }
+  };
+
+  if (!currentJob) {
     return (
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 text-center text-neutral-400">
         <BookOpen className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
@@ -149,6 +318,105 @@ ${q.practicalExample}
 
   return (
     <div id="stage-6-interview-prep" className="space-y-4">
+      {/* Persistent Non-Blocking Download Warning Bar */}
+      {hasUnsavedGuides && (
+        <div className="bg-amber-950/70 border border-amber-500/50 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-200 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <span>⚠️ Offline Retention Notice: {nonDownloadedJobs.length} Unsaved Master Guide{nonDownloadedJobs.length > 1 ? 's' : ''}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-300 border border-amber-700/60">
+                  {downloadedJobIds.size}/{activeJobsList.length} Saved
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-300/80 mt-0.5">
+                Targeted Technical & Behavioral Master Guides are session-ephemeral. Non-downloaded guides will auto-clear when progressing to Stage 7.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <button
+              onClick={handleDownloadAllZip}
+              disabled={isZipping}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow text-xs"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>{isZipping ? 'Bundling...' : 'Download All (.ZIP)'}</span>
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-amber-300 border border-amber-700/60 rounded-lg transition font-semibold cursor-pointer text-xs"
+            >
+              Download PDF ({currentJob.company})
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Multiple Job Feeds Selector with Circular Progress / Checkmarks */}
+      {activeJobsList.length > 1 && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-x-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+              <Layers className="w-3.5 h-3.5 text-violet-400" />
+              Master Guides ({activeJobsList.length} Jobs):
+            </span>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {activeJobsList.map((j, idx) => {
+                const isSaved = downloadedJobIds.has(j.id);
+                return (
+                  <button
+                    key={j.id}
+                    onClick={() => setSelectedJobIndex(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                      selectedJobIndex === idx
+                        ? 'bg-violet-600 text-white shadow'
+                        : 'bg-neutral-950 text-neutral-400 hover:text-white border border-neutral-800'
+                    }`}
+                  >
+                    {/* Small circular indicator / checkmark */}
+                    <span 
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 transition-colors ${
+                        isSaved 
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-500' 
+                          : 'bg-amber-950/80 text-amber-400 border border-amber-500/80'
+                      }`}
+                      title={isSaved ? "Master Guide Downloaded" : "Pending Download"}
+                    >
+                      {isSaved ? "✓" : "○"}
+                    </span>
+                    <span>{j.company}</span>
+                    <span className="text-[10px] opacity-75">({j.country})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleDownloadAllZip}
+              disabled={isZipping}
+              className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-950 border border-neutral-800 hover:border-emerald-700/60 transition cursor-pointer"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>{isZipping ? 'Bundling ZIP...' : 'Download All (.ZIP)'}</span>
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="text-xs font-bold text-violet-400 hover:text-violet-300 hidden sm:flex items-center gap-1 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download PDF</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
@@ -162,7 +430,7 @@ ${q.practicalExample}
             Targeted Technical & Behavioral Master Guide
           </h2>
           <p className="text-xs text-neutral-400">
-            Engineered for <strong className="text-neutral-200">{job.title}</strong> at <strong className="text-neutral-200">{job.company}</strong> ({job.location})
+            Engineered for <strong className="text-neutral-200">{currentJob.title}</strong> at <strong className="text-neutral-200">{currentJob.company}</strong> ({currentJob.location})
           </p>
         </div>
 
@@ -173,7 +441,7 @@ ${q.practicalExample}
               <button
                 key={level}
                 onClick={() => setSeniorityLevel(level)}
-                className={`px-2.5 py-1 rounded-md font-medium transition ${
+                className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
                   seniorityLevel === level
                     ? 'bg-violet-600 text-white shadow'
                     : 'text-neutral-400 hover:text-white'
@@ -184,10 +452,11 @@ ${q.practicalExample}
             ))}
           </div>
 
+          {/* Action buttons */}
           <button
             onClick={loadInterviewPrep}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-medium border border-neutral-700 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
             title="Regenerate Interview Prep"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -214,16 +483,27 @@ ${q.practicalExample}
 
           <button
             onClick={handleExportPdf}
-            disabled={!prepGuide}
+            disabled={!prepGuide || isLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Prep PDF</span>
           </button>
 
-          {(onProceedToMockInterview || onLaunchMockInterview) && (
+          {onOpenSummaryDashboard && (
             <button
-              onClick={() => onProceedToMockInterview ? onProceedToMockInterview() : onLaunchMockInterview && onLaunchMockInterview(job)}
+              onClick={onOpenSummaryDashboard}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-violet-300 rounded-lg text-xs font-semibold border border-neutral-700 transition cursor-pointer"
+              title="View Application Summary Dashboard"
+            >
+              <FileText className="w-3.5 h-3.5 text-violet-400" />
+              <span>Session Summary</span>
+            </button>
+          )}
+
+          {onProceedToMockInterview && (
+            <button
+              onClick={handleAttemptProceedToStage7}
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
             >
               <Mic className="w-3.5 h-3.5" />
@@ -534,9 +814,78 @@ ${q.practicalExample}
       <InterviewSchedulerModal
         isOpen={showSchedulerModal}
         onClose={() => setShowSchedulerModal(false)}
-        job={job}
+        job={currentJob}
         candidateProfile={candidateProfile}
       />
+
+      {/* Stage 6 to Stage 7 Deletion Warning Confirmation Modal with Countdown */}
+      {showStage7WarningModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-neutral-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <Download className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-1.5">
+                    <span>⚠️ Download Master Guide First?</span>
+                  </h3>
+                  <p className="text-xs text-amber-300 font-medium">
+                    Notice: Master Guide will auto-delete if you proceed without downloading
+                  </p>
+                </div>
+              </div>
+
+              {/* Live Countdown Badge */}
+              <div className="px-2.5 py-1 bg-amber-950/80 border border-amber-500/60 rounded-full text-[11px] font-mono font-bold text-amber-300">
+                Auto-Proceed in {countdownSeconds}s
+              </div>
+            </div>
+
+            {/* Countdown Visual Progress Bar */}
+            <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800">
+              <div 
+                className="bg-amber-500 h-full transition-all duration-1000 ease-linear"
+                style={{ width: `${(countdownSeconds / 15) * 100}%` }}
+              />
+            </div>
+
+            <p className="text-xs text-neutral-300 leading-relaxed bg-neutral-950 p-3.5 rounded-xl border border-neutral-800">
+              The <strong>Targeted Technical & Behavioral Master Guide</strong> for <strong>{currentJob.company}</strong> ({currentJob.country}) has not been saved. Advancing to Stage 7 will <strong>auto-delete this guide from active memory</strong>. Download your copy now to keep offline access!
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowStage7WarningModal(false)}
+                className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold cursor-pointer"
+              >
+                Cancel & Keep Guide
+              </button>
+              
+              <button
+                onClick={handleAutoDeleteAndProceed}
+                className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-800/60 text-xs font-semibold cursor-pointer"
+                title="Deletes guide and advances to Stage 7 immediately"
+              >
+                Proceed & Auto-Delete
+              </button>
+
+              <button
+                onClick={() => {
+                  handleExportPdf();
+                  setShowStage7WarningModal(false);
+                  if (onProceedToMockInterview) onProceedToMockInterview();
+                }}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>📥 Download PDF & Proceed</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
