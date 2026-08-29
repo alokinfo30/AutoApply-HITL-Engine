@@ -159,10 +159,12 @@ END:VCALENDAR`;
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition"
+            aria-label="Close interview scheduler modal"
+            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -172,11 +174,11 @@ END:VCALENDAR`;
           <div className="p-3.5 bg-neutral-950 rounded-xl border border-neutral-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-white flex items-center gap-1.5">
-                <Link className="w-3.5 h-3.5 text-teal-400" />
+                <Link className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
                 Connected Calendar Accounts:
               </span>
               <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                 Real-Time Availability Synced
               </span>
             </div>
@@ -196,8 +198,10 @@ END:VCALENDAR`;
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsGoogleConnected(!isGoogleConnected)}
-                  className={`text-[10px] font-bold px-2 py-1 rounded border transition ${
+                  aria-label={isGoogleConnected ? "Disconnect Google Calendar" : "Connect Google Calendar"}
+                  className={`text-[10px] font-bold px-2 py-1 rounded border transition cursor-pointer ${
                     isGoogleConnected ? 'bg-teal-950 text-teal-300 border-teal-800' : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                   }`}
                 >
@@ -219,8 +223,10 @@ END:VCALENDAR`;
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsOutlookConnected(!isOutlookConnected)}
-                  className={`text-[10px] font-bold px-2 py-1 rounded border transition ${
+                  aria-label={isOutlookConnected ? "Disconnect Microsoft Outlook" : "Connect Microsoft Outlook"}
+                  className={`text-[10px] font-bold px-2 py-1 rounded border transition cursor-pointer ${
                     isOutlookConnected ? 'bg-teal-950 text-teal-300 border-teal-800' : 'bg-neutral-800 text-neutral-400 border-neutral-700'
                   }`}
                 >
@@ -233,11 +239,13 @@ END:VCALENDAR`;
           {/* Availability Preferences Bar */}
           <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div>
-              <label className="block text-neutral-400 text-[10px] mb-1 font-medium">Candidate Timezone</label>
+              <label htmlFor="select-interview-timezone" className="block text-neutral-400 text-[10px] mb-1 font-medium">Candidate Timezone</label>
               <select
+                id="select-interview-timezone"
+                aria-label="Candidate timezone"
                 value={candidateTimezone}
                 onChange={(e) => setCandidateTimezone(e.target.value)}
-                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none"
+                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none cursor-pointer"
               >
                 <option value="Europe/Berlin">Europe/Berlin (CET)</option>
                 <option value="Europe/London">Europe/London (GMT/BST)</option>
@@ -249,11 +257,13 @@ END:VCALENDAR`;
             </div>
 
             <div>
-              <label className="block text-neutral-400 text-[10px] mb-1 font-medium">Meeting Duration</label>
+              <label htmlFor="select-interview-duration" className="block text-neutral-400 text-[10px] mb-1 font-medium">Meeting Duration</label>
               <select
+                id="select-interview-duration"
+                aria-label="Meeting duration in minutes"
                 value={meetingDurationMinutes}
                 onChange={(e) => setMeetingDurationMinutes(Number(e.target.value))}
-                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none"
+                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none cursor-pointer"
               >
                 <option value={45}>45 Min (Technical Screen)</option>
                 <option value={60}>60 Min (System Design / Architecture)</option>
@@ -262,11 +272,13 @@ END:VCALENDAR`;
             </div>
 
             <div>
-              <label className="block text-neutral-400 text-[10px] mb-1 font-medium">Video Platform</label>
+              <label htmlFor="select-interview-platform" className="block text-neutral-400 text-[10px] mb-1 font-medium">Video Platform</label>
               <select
+                id="select-interview-platform"
+                aria-label="Preferred video conference platform"
                 value={preferredPlatform}
                 onChange={(e) => setPreferredPlatform(e.target.value as any)}
-                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none"
+                className="w-full p-1.5 bg-neutral-900 border border-neutral-800 rounded text-white text-xs outline-none cursor-pointer"
               >
                 <option value="Google Meet">Google Meet</option>
                 <option value="Microsoft Teams">Microsoft Teams</option>
@@ -286,11 +298,16 @@ END:VCALENDAR`;
               </span>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2" role="radiogroup" aria-label="Available interview time slots">
               {proposedSlots.map((slot, idx) => (
                 <div
                   key={idx}
+                  role="radio"
+                  aria-checked={selectedSlotIndex === idx}
+                  tabIndex={0}
                   onClick={() => setSelectedSlotIndex(idx)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedSlotIndex(idx); } }}
+                  aria-label={`Select slot ${slot.label} on ${slot.date} at ${slot.time}`}
                   className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between ${
                     selectedSlotIndex === idx
                       ? 'bg-teal-950/40 border-teal-500/60 shadow'
@@ -326,29 +343,33 @@ END:VCALENDAR`;
                 href={googleCalendarUrl}
                 target="_blank"
                 rel="noreferrer"
+                aria-label="Open in Google Calendar to create hold"
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg border border-neutral-800 font-medium transition text-xs"
               >
-                <Globe className="w-3.5 h-3.5 text-blue-400" />
+                <Globe className="w-3.5 h-3.5 text-blue-400" aria-hidden="true" />
                 <span>Google Calendar</span>
-                <ExternalLink className="w-3 h-3 text-neutral-500" />
+                <ExternalLink className="w-3 h-3 text-neutral-500" aria-hidden="true" />
               </a>
 
               <a
                 href={outlookCalendarUrl}
                 target="_blank"
                 rel="noreferrer"
+                aria-label="Open in Outlook Calendar to create hold"
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg border border-neutral-800 font-medium transition text-xs"
               >
-                <Globe className="w-3.5 h-3.5 text-teal-400" />
+                <Globe className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
                 <span>Outlook 365</span>
-                <ExternalLink className="w-3 h-3 text-neutral-500" />
+                <ExternalLink className="w-3 h-3 text-neutral-500" aria-hidden="true" />
               </a>
 
               <button
+                type="button"
                 onClick={handleDownloadIcs}
+                aria-label="Export .ICS calendar file for interview hold"
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 rounded-lg border border-neutral-800 font-medium transition text-xs cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <Download className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
                 <span>Export .ICS File</span>
               </button>
             </div>
@@ -359,10 +380,12 @@ END:VCALENDAR`;
             <div className="flex items-center justify-between">
               <span className="font-semibold text-white">Recruiter Availability Response Template:</span>
               <button
+                type="button"
                 onClick={handleCopyBlurb}
+                aria-label="Copy recruiter availability message to clipboard"
                 className="flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-xs font-semibold transition cursor-pointer"
               >
-                {copiedBlurb ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {copiedBlurb ? <Check className="w-3 h-3 text-emerald-300" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
                 <span>{copiedBlurb ? 'Copied Response!' : 'Copy Availability Message'}</span>
               </button>
             </div>
@@ -378,8 +401,10 @@ END:VCALENDAR`;
             Calendar APIs connect with Google Meet and Microsoft Teams.
           </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold"
+            aria-label="Close interview scheduler"
+            className="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold cursor-pointer"
           >
             Done
           </button>

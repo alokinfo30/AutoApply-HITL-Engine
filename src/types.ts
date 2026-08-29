@@ -383,3 +383,133 @@ export interface AutoPilotRunLog {
   }[];
 }
 
+// ==========================================
+// Self-Healing (Auto-Debugging) Agentic SaaS
+// ==========================================
+
+export type ErrorSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type ErrorSourceType = 'frontend' | 'backend' | 'network' | 'syntax' | 'runtime';
+export type IncidentStatus = 
+  | 'CAPTURED' 
+  | 'ANALYZING' 
+  | 'PATCHING' 
+  | 'TESTING' 
+  | 'TEST_PASSED' 
+  | 'TEST_FAILED' 
+  | 'AUTO_DEPLOYED' 
+  | 'HOTFIX_ACTIVE' 
+  | 'ESCALATED' 
+  | 'ROLLED_BACK';
+
+export interface CapturedErrorPayload {
+  id: string;
+  timestamp: string;
+  type: ErrorSourceType;
+  message: string;
+  file: string;
+  line: number;
+  col?: number;
+  stack?: string;
+  componentStack?: string;
+  url?: string;
+  userAgent?: string;
+  severity: ErrorSeverity;
+  status: IncidentStatus;
+  environment: 'production' | 'staging' | 'development';
+  rawPayload?: any;
+}
+
+export interface CodebaseASTContext {
+  filePath: string;
+  errorLine: number;
+  surroundingSnippet: string;
+  functionsInFile: string[];
+  importedModules: string[];
+  totalFileLines: number;
+  astStructureSummary: string;
+}
+
+export interface Agent1RootCauseAnalysis {
+  errorId: string;
+  rootCause: string;
+  failureMechanism: string;
+  affectedFiles: string[];
+  impactedDependencies: string[];
+  riskAssessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  confidenceScore: number; // 0 - 100
+  suggestedFixStrategy: string;
+}
+
+export interface Agent2PatchResult {
+  errorId: string;
+  targetFile: string;
+  originalSnippet: string;
+  patchedSnippet: string;
+  unifiedDiff: string;
+  patchExplanation: string;
+  securityGuardrails: {
+    noAuthBypass: boolean;
+    noEnvLeaks: boolean;
+    noSecurityAlteration: boolean;
+    sanitizedInputs: boolean;
+    passAudit: boolean;
+  };
+}
+
+export interface TestAssertionResult {
+  testName: string;
+  passed: boolean;
+  durationMs: number;
+  assertionType: 'unit' | 'regression' | 'security_ast' | 'type_safety';
+  errorMessage?: string;
+}
+
+export interface Agent3VerificationResult {
+  errorId: string;
+  sandboxId: string;
+  overallStatus: 'PASSED' | 'FAILED';
+  testSuiteName: string;
+  testsPassed: number;
+  testsFailed: number;
+  testResults: TestAssertionResult[];
+  astSecurityScan: {
+    passed: boolean;
+    vulnerabilitiesDetected: string[];
+    memorySafetyScore: number;
+    staticAuditVerdict: string;
+  };
+  sandboxExecutionTimeMs: number;
+  readyForAutoDeploy: boolean;
+}
+
+export interface SelfHealingIncident {
+  id: string;
+  createdAt: string;
+  resolvedAt?: string;
+  status: IncidentStatus;
+  error: CapturedErrorPayload;
+  codeContext?: CodebaseASTContext;
+  analysis?: Agent1RootCauseAnalysis;
+  patch?: Agent2PatchResult;
+  verification?: Agent3VerificationResult;
+  hotfixActive: boolean;
+  hotfixDeployedAt?: string;
+  rollbackSnapshot?: {
+    originalFileContent: string;
+    appliedFileContent: string;
+    checksum: string;
+  };
+  adminAlertDispatched?: boolean;
+}
+
+export interface SelfHealingConfig {
+  autoDeployEnabled: boolean;
+  sandboxStrictness: 'STRICT' | 'STANDARD' | 'PERMISSIVE';
+  llmGuardrailsEnabled: boolean;
+  requireHumanApprovalForCritical: boolean;
+  notifyOnTelegram: boolean;
+  notifyOnDiscord: boolean;
+  maxAutoFixesPerHour: number;
+  activeHotfixesCount: number;
+}
+

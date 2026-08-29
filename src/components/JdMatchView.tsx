@@ -295,11 +295,13 @@ export const JdMatchView: React.FC<JdMatchViewProps> = ({
               </span>
             </div>
             <button
+              type="button"
               onClick={() => setViewAllJobsExpanded(!viewAllJobsExpanded)}
+              aria-label={viewAllJobsExpanded ? "Collapse multi-view job feeds" : "Expand all job feed analyses"}
               className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
             >
               <span>{viewAllJobsExpanded ? 'Collapse Multi-View' : 'Expand All Job Feed Analyses'}</span>
-              {viewAllJobsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {viewAllJobsExpanded ? <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />}
             </button>
           </div>
 
@@ -311,14 +313,16 @@ export const JdMatchView: React.FC<JdMatchViewProps> = ({
               return (
                 <button
                   key={j.id || idx}
+                  type="button"
                   onClick={() => setSelectedJobIndex(idx)}
+                  aria-label={`Select job feed for ${j.title} at ${j.company} (${j.country}) with match score ${jAnalysis.score}%`}
                   className={`px-3 py-2 rounded-lg text-left transition flex items-center gap-2.5 shrink-0 border cursor-pointer ${
                     isSelected
                       ? 'bg-emerald-950/70 border-emerald-500 text-white shadow-sm ring-1 ring-emerald-500/30'
                       : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
                   }`}
                 >
-                  <Building className="w-3.5 h-3.5 text-neutral-500" />
+                  <Building className="w-3.5 h-3.5 text-neutral-500" aria-hidden="true" />
                   <div>
                     <div className="text-xs font-bold text-white flex items-center gap-1.5 leading-tight">
                       <span>{j.company}</span>
@@ -417,7 +421,10 @@ export const JdMatchView: React.FC<JdMatchViewProps> = ({
                 return (
                   <button
                     key={countryName}
+                    type="button"
                     onClick={() => toggleCountryStandard(countryName)}
+                    aria-label={`Toggle ${countryName} CV standard (${isSelected ? 'Selected' : 'Not selected'})`}
+                    aria-pressed={isSelected}
                     className={`p-3 rounded-lg text-left border transition-all flex flex-col justify-between cursor-pointer ${
                       isSelected
                         ? 'bg-emerald-950/50 border-emerald-500 text-white ring-1 ring-emerald-500/40 shadow-sm'
@@ -458,15 +465,17 @@ export const JdMatchView: React.FC<JdMatchViewProps> = ({
 
             {/* Option to add any additional country standard */}
             <div className="mt-3 pt-2.5 border-t border-neutral-800/80 flex items-center justify-between flex-wrap gap-2">
-              <span className="text-[11px] text-neutral-400">Need another country standard?</span>
+              <label htmlFor="select-jd-country-standard" className="text-[11px] text-neutral-400">Need another country standard?</label>
               <select
+                id="select-jd-country-standard"
+                aria-label="Add additional country CV standard"
                 onChange={(e) => {
                   if (e.target.value) {
                     toggleCountryStandard(e.target.value);
                     e.target.value = '';
                   }
                 }}
-                className="px-2.5 py-1 bg-neutral-950 border border-neutral-800 rounded-md text-[11px] text-neutral-300 outline-none focus:border-emerald-500"
+                className="px-2.5 py-1 bg-neutral-950 border border-neutral-800 rounded-md text-[11px] text-neutral-300 outline-none focus:border-emerald-500 cursor-pointer"
               >
                 <option value="">+ Add Any Country CV Standard...</option>
                 {ALL_WORLD_COUNTRIES.map(c => (
@@ -695,14 +704,16 @@ export const JdMatchView: React.FC<JdMatchViewProps> = ({
 
             <div className="mt-4 pt-3 border-t border-neutral-800">
               <button
+                type="button"
                 id="btn-proceed-stage3"
                 onClick={onProceedToResume}
                 disabled={isAnalyzing || qualifyingJobs.length === 0}
+                aria-label={isAnalyzing ? "Analyzing job requirements and formatting resumes..." : `Proceed to Stage 3 and generate tailored ATS resumes for ${qualifyingJobs.length} jobs`}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-950/40 transition disabled:opacity-50 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
                 <span>Generate Tailored Resumes ({qualifyingJobs.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>

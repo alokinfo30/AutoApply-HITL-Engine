@@ -415,17 +415,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close authentication modal"
             className="p-1.5 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
         {/* Notice if redirected from Stage 2 */}
         {displayNotice && (
           <div className="mx-5 mt-4 p-3 bg-amber-950/70 border border-amber-800/80 rounded-xl text-[11px] text-amber-200 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
             <span>{displayNotice}</span>
           </div>
         )}
@@ -433,7 +435,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Feedback message */}
         {syncFeedback && (
           <div className="mx-5 mt-4 p-2.5 bg-emerald-950/80 border border-emerald-800/80 rounded-xl text-[11px] text-emerald-200 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
             <span>{syncFeedback}</span>
           </div>
         )}
@@ -445,12 +447,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="space-y-3 bg-neutral-950 p-4 rounded-xl border border-neutral-800 animate-in fade-in duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
                 <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
-                  <Linkedin className="w-4 h-4" />
+                  <Linkedin className="w-4 h-4" aria-hidden="true" />
                   <span>Authenticate with LinkedIn</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveSubView('main')}
+                  aria-label="Cancel LinkedIn authentication and return to main options"
                   className="text-neutral-400 hover:text-white text-[11px] cursor-pointer"
                 >
                   Cancel
@@ -462,7 +465,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </p>
 
               <div>
-                <label className="block text-neutral-300 mb-1 font-medium text-[11px]">
+                <label htmlFor="auth-linkedin-handle" className="block text-neutral-300 mb-1 font-medium text-[11px]">
                   LinkedIn Profile / Handle
                 </label>
                 <div className="relative">
@@ -470,10 +473,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     linkedin.com/in/
                   </span>
                   <input
+                    id="auth-linkedin-handle"
                     type="text"
                     value={linkedInUsernameInput}
                     onChange={(e) => setLinkedInUsernameInput(e.target.value)}
                     placeholder="alok-kumar-tech"
+                    aria-label="LinkedIn profile username or handle"
                     className="w-full pl-33 pr-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white font-mono text-xs outline-none focus:border-blue-500"
                   />
                 </div>
@@ -483,9 +488,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={handleConnectWithLinkedIn}
                 disabled={isConnectingLinkedIn}
+                aria-label="Authorize and connect LinkedIn account"
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl font-bold transition shadow cursor-pointer text-xs"
               >
-                <Link2 className={`w-4 h-4 ${isConnectingLinkedIn ? 'animate-spin' : ''}`} />
+                <Link2 className={`w-4 h-4 ${isConnectingLinkedIn ? 'animate-spin' : ''}`} aria-hidden="true" />
                 <span>{isConnectingLinkedIn ? 'Verifying OAuth Credentials...' : 'Authorize & Connect LinkedIn'}</span>
               </button>
             </div>
@@ -496,10 +502,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={handleGoogleSsoLogin}
                 disabled={isGoogleLoading}
+                aria-label="Continue with Google SSO"
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-neutral-100 text-neutral-900 rounded-xl font-bold shadow-lg transition cursor-pointer border border-neutral-200"
               >
                 {/* Official Google G Logo */}
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="#4285F4"
                     d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -525,12 +532,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
-                      <Send className="w-3 h-3" />
+                      <Send className="w-3 h-3" aria-hidden="true" />
                     </div>
                     <span className="font-bold text-white text-xs">Telegram Login Widget (Auto-Fill)</span>
                   </div>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-950 text-teal-300 border border-teal-800">
-                    <Bot className="w-3 h-3 text-teal-400" />
+                    <Bot className="w-3 h-3 text-teal-400" aria-hidden="true" />
                     Auto-Configured
                   </span>
                 </div>
@@ -544,9 +551,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => handleTelegramWidgetLogin(telegramUsernameInput)}
                   disabled={isTelegramLoading}
+                  aria-label={`Log in with Telegram as ${telegramUsernameInput || '@alok_kumar'}`}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold shadow-lg shadow-teal-950/40 transition cursor-pointer text-xs"
                 >
-                  <Send className={`w-3.5 h-3.5 ${isTelegramLoading ? 'animate-spin' : ''}`} />
+                  <Send className={`w-3.5 h-3.5 ${isTelegramLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
                   <span>{isTelegramLoading ? 'Connecting Telegram SSO...' : `Log in with Telegram (${telegramUsernameInput || '@alok_kumar'})`}</span>
                 </button>
 
@@ -554,9 +562,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={handleLaunchOfficialBotAndCapture}
+                  aria-label="Launch official Telegram bot to capture chat ID"
                   className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-neutral-900 hover:bg-neutral-850 text-teal-300 rounded-lg text-[11px] font-medium border border-teal-900/60 transition cursor-pointer"
                 >
-                  <ExternalLink className="w-3 h-3 text-teal-400" />
+                  <ExternalLink className="w-3 h-3 text-teal-400" aria-hidden="true" />
                   <span>{isListeningForTgStart ? 'Waiting for /start in Telegram...' : 'Launch Official Bot (@AutoApplyHitlBot) to Capture Chat ID'}</span>
                 </button>
               </div>
@@ -565,12 +574,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="bg-neutral-950 p-3.5 rounded-xl border border-neutral-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Linkedin className="w-4 h-4 text-[#0A66C2]" />
+                    <Linkedin className="w-4 h-4 text-[#0A66C2]" aria-hidden="true" />
                     <span className="font-bold text-white text-xs">LinkedIn Integration</span>
                   </div>
                   {isLinkedInConnected ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                      <Check className="w-3 h-3 text-emerald-400" />
+                      <Check className="w-3 h-3 text-emerald-400" aria-hidden="true" />
                       Connected @{linkedInUsernameInput}
                     </span>
                   ) : (
@@ -583,9 +592,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveSubView('linkedin_auth_prompt')}
+                    aria-label="Connect with LinkedIn credentials"
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-lg font-bold shadow transition cursor-pointer text-xs"
                   >
-                    <Link2 className="w-3.5 h-3.5" />
+                    <Link2 className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>Connect with LinkedIn</span>
                   </button>
                 ) : (
@@ -594,9 +604,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     type="button"
                     onClick={handleExecuteLinkedInAutoSync}
                     disabled={isSyncingLinkedIn}
+                    aria-label="Execute 1-click auto-sync with LinkedIn"
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-blue-900/40 transition cursor-pointer text-xs animate-pulse"
                   >
-                    <Sparkles className={`w-3.5 h-3.5 ${isSyncingLinkedIn ? 'animate-spin' : ''}`} />
+                    <Sparkles className={`w-3.5 h-3.5 ${isSyncingLinkedIn ? 'animate-spin' : ''}`} aria-hidden="true" />
                     <span>{isSyncingLinkedIn ? 'Syncing Profile & Experiences...' : '⚡ 1-Click Auto-Sync with LinkedIn'}</span>
                   </button>
                 )}
@@ -613,9 +624,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={handleGithubSsoLogin}
                 disabled={isGithubLoading}
+                aria-label="Continue with GitHub SSO"
                 className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-bold transition cursor-pointer border border-neutral-700"
               >
-                <Github className="w-4 h-4" />
+                <Github className="w-4 h-4" aria-hidden="true" />
                 <span>{isGithubLoading ? 'Connecting GitHub...' : 'Continue with GitHub'}</span>
               </button>
 
@@ -624,9 +636,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={handleQuickDemoSignIn}
                 disabled={isQuickDemoLoading}
+                aria-label="Instant 1-Click Quick Demo Sign In"
                 className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded-xl transition cursor-pointer text-[11px] border border-neutral-800/80"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <Zap className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
                 <span>⚡ Instant 1-Click Quick Demo Sign In</span>
               </button>
             </>
@@ -634,7 +647,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           {/* Strict Data Isolation Guarantee Badge */}
           <div className="p-2.5 bg-neutral-950/80 rounded-xl border border-neutral-800/80 text-[10px] text-neutral-400 flex items-center gap-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
             <span>Strict data isolation guarantee: No passwords stored. Authentication is purely OAuth SSO.</span>
           </div>
 

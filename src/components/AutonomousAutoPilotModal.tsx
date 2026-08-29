@@ -351,13 +351,15 @@ export const AutonomousAutoPilotModal: React.FC<AutonomousAutoPilotModalProps> =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Daily Quota */}
               <div>
-                <label className="text-xs text-neutral-300 font-medium block mb-1.5">
+                <label htmlFor="select-autopilot-daily-quota" className="text-xs text-neutral-300 font-medium block mb-1.5">
                   Max Daily Applications
                 </label>
                 <select
+                  id="select-autopilot-daily-quota"
+                  aria-label="Max daily job applications quota"
                   value={config.maxDailyApplications}
                   onChange={(e) => setConfig(prev => ({ ...prev, maxDailyApplications: Number(e.target.value) }))}
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-2.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded-xl p-2.5 text-xs text-white focus:border-emerald-500 focus:outline-none cursor-pointer"
                 >
                   <option value={5}>5 Applications / Day (Gentle)</option>
                   <option value={10}>10 Applications / Day (Balanced)</option>

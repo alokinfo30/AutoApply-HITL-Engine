@@ -232,10 +232,12 @@ export const BrowserWorkerModal: React.FC<BrowserWorkerModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close browser automation worker modal"
             className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -385,8 +387,10 @@ export const BrowserWorkerModal: React.FC<BrowserWorkerModalProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow transition"
+                aria-label="Close modal and view next match"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow transition cursor-pointer"
               >
                 Close & View Next Match
               </button>

@@ -151,21 +151,27 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
+              id="btn-download-all-resumes"
               onClick={handleDownloadAllPdfs}
               disabled={isBatchDownloading}
+              aria-label={`Download all ${resumes.length} generated ATS resumes as PDF files`}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold border border-neutral-700 transition cursor-pointer"
             >
-              <FolderArchive className="w-3.5 h-3.5 text-emerald-400" />
+              <FolderArchive className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
               <span>{isBatchDownloading ? 'Downloading...' : `Download All ${resumes.length} PDFs`}</span>
             </button>
 
             <button
+              type="button"
+              id="btn-proceed-stage4-top"
               onClick={onProceedToTelegram}
+              aria-label="Proceed to Stage 4 Telegram and Discord Human-in-the-loop review"
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-teal-950/40 transition cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Proceed to Stage 4 (HITL Approval)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -174,12 +180,14 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 pt-3">
           {/* Job Feed Filter */}
           <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-            <Filter className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="font-semibold text-neutral-300">Job Feed:</span>
+            <Filter className="w-3.5 h-3.5 text-neutral-500" aria-hidden="true" />
+            <label htmlFor="select-resume-job-filter" className="font-semibold text-neutral-300">Job Feed:</label>
             <select
+              id="select-resume-job-filter"
+              aria-label="Filter generated resumes by job feed"
               value={jobFilter}
               onChange={(e) => setJobFilter(e.target.value)}
-              className="bg-neutral-950 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white outline-none focus:border-emerald-500"
+              className="bg-neutral-950 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white outline-none focus:border-emerald-500 cursor-pointer"
             >
               <option value="ALL">All Job Feeds ({availableCompanies.length})</option>
               {availableCompanies.map(([id, comp]) => (
@@ -190,12 +198,14 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
 
           {/* Country Standard Filter */}
           <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-            <Globe className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="font-semibold text-neutral-300">Country Standard:</span>
+            <Globe className="w-3.5 h-3.5 text-neutral-500" aria-hidden="true" />
+            <label htmlFor="select-resume-country-filter" className="font-semibold text-neutral-300">Country Standard:</label>
             <select
+              id="select-resume-country-filter"
+              aria-label="Filter generated resumes by country standard"
               value={countryFilter}
               onChange={(e) => setCountryFilter(e.target.value)}
-              className="bg-neutral-950 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white outline-none focus:border-emerald-500"
+              className="bg-neutral-950 border border-neutral-800 rounded px-2.5 py-1 text-xs text-white outline-none focus:border-emerald-500 cursor-pointer"
             >
               <option value="ALL">All Countries ({availableCountries.length})</option>
               {availableCountries.map(c => (
@@ -206,10 +216,12 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
 
           {(jobFilter !== 'ALL' || countryFilter !== 'ALL') && (
             <button
+              type="button"
               onClick={() => {
                 setJobFilter('ALL');
                 setCountryFilter('ALL');
               }}
+              aria-label="Reset resume directory filters"
               className="text-xs text-emerald-400 hover:underline cursor-pointer"
             >
               Reset Filters
@@ -219,7 +231,7 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
 
         {/* Resumes Grid/Cards grouped by Job Feed and Country */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 mt-3">
-          {filteredResumes.map((r, idx) => {
+          {filteredResumes.map((r) => {
             const actualIndex = resumes.indexOf(r);
             const isSelected = activeResumeIndex === actualIndex;
 
@@ -244,7 +256,7 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
                   </div>
 
                   <div className="text-xs font-bold text-white leading-tight mb-0.5 flex items-center gap-1">
-                    <Building className="w-3 h-3 text-neutral-500 shrink-0" />
+                    <Building className="w-3 h-3 text-neutral-500 shrink-0" aria-hidden="true" />
                     <span className="truncate">{r.targetCompany || job.company}</span>
                   </div>
                   <div className="text-[11px] text-neutral-400 truncate mb-2">
@@ -260,6 +272,7 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
                 <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-neutral-800/80">
                   <button
                     type="button"
+                    aria-label={`Preview ATS resume tailored for ${r.targetCompany || job.company} (${r.country || 'Global'} Standard)`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectResumeIndex(actualIndex);
@@ -273,13 +286,14 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
                   <button
                     type="button"
                     title="Download ATS PDF for this job"
+                    aria-label={`Download PDF resume for ${r.targetCompany || job.company}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownloadSinglePdf(r);
                     }}
-                    className="p-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded border border-neutral-800 transition"
+                    className="p-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded border border-neutral-800 transition cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -310,52 +324,62 @@ export const ResumeGeneratorView: React.FC<ResumeGeneratorViewProps> = ({
           {/* Switch View Mode */}
           <div className="flex bg-neutral-950 p-1 rounded-lg border border-neutral-800 text-xs">
             <button
+              type="button"
+              aria-label="Switch to formatted ATS paper preview"
               onClick={() => setViewMode('ats-preview')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition cursor-pointer ${
                 viewMode === 'ats-preview' ? 'bg-neutral-800 text-white font-medium shadow-xs' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="w-3.5 h-3.5" aria-hidden="true" />
               ATS Preview
             </button>
             <button
+              type="button"
+              aria-label="Switch to raw markdown editor"
               onClick={() => setViewMode('markdown-raw')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition cursor-pointer ${
                 viewMode === 'markdown-raw' ? 'bg-neutral-800 text-white font-medium shadow-xs' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
-              <Edit3 className="w-3.5 h-3.5" />
+              <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
               Markdown Editor
             </button>
           </div>
 
           <button
+            type="button"
             onClick={onRegenerateResume}
             disabled={isGenerating}
+            aria-label={isGenerating ? "Regenerating resume with Gemini..." : "Regenerate resume with Gemini 3.7 Flash"}
             className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
             title="Re-run Gemini 3.7 Flash tailoring"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin text-emerald-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin text-emerald-400' : ''}`} aria-hidden="true" />
             <span>{isGenerating ? 'Regenerating...' : 'Regenerate'}</span>
           </button>
 
           <button
+            type="button"
             id="btn-download-pdf"
             onClick={() => handleDownloadSinglePdf(currentResume)}
+            aria-label={`Download ATS formatted PDF for ${currentResume.targetCompany || currentJobForResume.company}`}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Download ATS PDF</span>
           </button>
 
           <button
+            type="button"
             id="btn-proceed-stage4"
             onClick={onProceedToTelegram}
+            aria-label={`Proceed to Stage 4 and launch HITL approval for ${resumes.length} jobs`}
             className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-teal-950/40 transition cursor-pointer"
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Launch HITL ({resumes.length} Job{resumes.length > 1 ? 's' : ''})</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>

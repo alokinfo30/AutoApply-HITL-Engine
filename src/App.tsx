@@ -17,6 +17,8 @@ import { InterviewPrepView } from './components/InterviewPrepView';
 import { MockInterviewView } from './components/MockInterviewView';
 import { OpenSourceCodeHub } from './components/OpenSourceCodeHub';
 import { ApplicationHistoryView, HistoryRecord } from './components/ApplicationHistoryView';
+import { SelfHealingStudioView } from './components/SelfHealingStudioView';
+import { initGlobalErrorCapture } from './utils/selfHealingInterceptor';
 
 // Modals & New Core Features
 import { AuthModal } from './components/AuthModal';
@@ -44,13 +46,24 @@ import {
 import { DEFAULT_CANDIDATE_PROFILE, INITIAL_SAMPLE_JOBS } from './data/defaultData';
 import { calculateProfileCompletion, isCandidateNativeCountry } from './utils/profileValidation';
 import { CandidateProfileModal } from './components/CandidateProfileModal';
+import { 
+  safeFetchJson, 
+  fallbackParseJd, 
+  fallbackGenerateMultiCountryResumes, 
+  fallbackGenerateInterviewPrep 
+} from './utils/apiClient';
 
 export default function App() {
   // Navigation & View Tabs
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'architecture' | 'history'>('pipeline');
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'architecture' | 'history' | 'self-healing'>('pipeline');
   const [currentStage, setCurrentStage] = useState<StageId>(1);
   const [completedStages, setCompletedStages] = useState<number[]>([1]);
   const [unlockedMaxStage, setUnlockedMaxStage] = useState<number>(1);
+
+  // Initialize Global Autonomous Error Interceptor
+  useEffect(() => {
+    initGlobalErrorCapture();
+  }, []);
 
   // Authentication State
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
@@ -341,23 +354,29 @@ export default function App() {
     setSelectedCountryStandards(initialStandards);
 
     try {
-      const res = await fetch("/api/gemini/parse-jd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job,
-          candidateProfile
+      const data = await safeFetchJson<{ success: boolean; analysis?: MatchAnalysis }>(
+        "/api/gemini/parse-jd",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job,
+            candidateProfile
+          })
+        },
+        () => ({
+          success: true,
+          analysis: fallbackParseJd(job, candidateProfile)
         })
-      });
-      const data = await res.json();
+      );
       if (data.success && data.analysis) {
         setMatchAnalysis(data.analysis);
         // Update job with match details
         setJobs(prev => prev.map(j => j.id === job.id ? { 
           ...j, 
-          matchScore: data.analysis.score, 
-          matchedKeywords: data.analysis.matchedSkills,
-          missingKeywords: data.analysis.skillGaps,
+          matchScore: data.analysis!.score, 
+          matchedKeywords: data.analysis!.matchedSkills,
+          missingKeywords: data.analysis!.skillGaps,
           status: 'matched' 
         } : j));
       }
@@ -418,16 +437,29 @@ export default function App() {
     setSelectedCountryStandards(uniqueCountries);
 
     try {
-      const res = await fetch("/api/gemini/parse-jd", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job: primaryJob,
-          jobs: selectedJobsList,
-          candidateProfile
-        })
+      const fallbackAnalyses: Record<string, MatchAnalysis> = {};
+      selectedJobsList.forEach(jb => {
+        fallbackAnalyses[jb.id] = fallbackParseJd(jb, candidateProfile);
       });
-      const data = await res.json();
+
+      const data = await safeFetchJson<{ success: boolean; analysis?: MatchAnalysis; analyses?: Record<string, MatchAnalysis> }>(
+        "/api/gemini/parse-jd",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job: primaryJob,
+            jobs: selectedJobsList,
+            candidateProfile
+          })
+        },
+        () => ({
+          success: true,
+          analysis: fallbackAnalyses[primaryJob.id],
+          analyses: fallbackAnalyses
+        })
+      );
+
       if (data.success) {
         if (data.analysis) {
           setMatchAnalysis(data.analysis);
@@ -497,17 +529,24 @@ export default function App() {
     }
 
     try {
-      const res = await fetch("/api/gemini/generate-multi-country-resumes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job: selectedJob,
-          jobs: targetJobs,
-          candidateProfile,
-          targetCountries: targetStandards
+      const data = await safeFetchJson<{ success: boolean; resumes?: GeneratedResume[]; resume?: GeneratedResume }>(
+        "/api/gemini/generate-multi-country-resumes",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job: selectedJob,
+            jobs: targetJobs,
+            candidateProfile,
+            targetCountries: targetStandards
+          })
+        },
+        () => ({
+          success: true,
+          resumes: fallbackGenerateMultiCountryResumes(targetJobs, candidateProfile, targetStandards)
         })
-      });
-      const data = await res.json();
+      );
+
       if (data.success && data.resumes && data.resumes.length > 0) {
         setGeneratedResumes(data.resumes);
         setActiveResumeIndex(0);
@@ -517,22 +556,9 @@ export default function App() {
           }
           return j;
         }));
-      } else {
-        // Fallback to single resume generator
-        const singleRes = await fetch("/api/gemini/generate-resume", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            job: selectedJob,
-            candidateProfile,
-            countryFormat: selectedJob.countryFormat || 'GERMANY_EU'
-          })
-        });
-        const singleData = await singleRes.json();
-        if (singleData.success && singleData.resume) {
-          setGeneratedResumes([singleData.resume]);
-          setActiveResumeIndex(0);
-        }
+      } else if (data.success && data.resume) {
+        setGeneratedResumes([data.resume]);
+        setActiveResumeIndex(0);
       }
     } catch (err) {
       console.error("Resume generation error:", err);
@@ -634,16 +660,22 @@ export default function App() {
   const handleRefreshLiveFeed = async () => {
     setIsDiscovering(true);
     try {
-      const res = await fetch("/api/jobs/discover");
-      const data = await res.json();
+      const data = await safeFetchJson<{ success: boolean; jobs?: JobPosting[] }>(
+        "/api/jobs/discover",
+        { method: "GET" },
+        () => ({
+          success: true,
+          jobs: INITIAL_SAMPLE_JOBS
+        })
+      );
       if (data.success && data.jobs && data.jobs.length > 0) {
         setJobs(prev => {
-          const combined = [...data.jobs, ...prev];
+          const combined = [...data.jobs!, ...prev];
           return combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
         });
       }
     } catch (e) {
-      console.warn("Live feed fetch fallback:", e);
+      console.warn("Live feed fetch fallback handled:", e);
     } finally {
       setIsDiscovering(false);
     }
@@ -723,16 +755,23 @@ export default function App() {
 
       setIsGenerating(true);
       setCurrentStage(3);
-      const res = await fetch("/api/gemini/generate-multi-country-resumes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job: targetJob,
-          candidateProfile,
-          targetCountries: [targetJob.country || 'Germany', 'Singapore', 'United States']
+      const targetCountriesList = [targetJob.country || 'Germany', 'Singapore', 'United States'];
+      const data = await safeFetchJson<{ success: boolean; resumes?: GeneratedResume[] }>(
+        "/api/gemini/generate-multi-country-resumes",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job: targetJob,
+            candidateProfile,
+            targetCountries: targetCountriesList
+          })
+        },
+        () => ({
+          success: true,
+          resumes: fallbackGenerateMultiCountryResumes([targetJob], candidateProfile, targetCountriesList)
         })
-      });
-      const data = await res.json();
+      );
       if (data.success && data.resumes && data.resumes.length > 0) {
         setGeneratedResumes(data.resumes);
         setActiveResumeIndex(0);
@@ -937,6 +976,10 @@ export default function App() {
               fetch('/api/user/history', { method: 'DELETE' }).catch(() => {});
             }}
           />
+        )}
+
+        {activeTab === 'self-healing' && (
+          <SelfHealingStudioView />
         )}
       </main>
 

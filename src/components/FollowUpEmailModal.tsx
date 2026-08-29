@@ -204,36 +204,46 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition"
+            aria-label="Close follow up email generator modal"
+            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
         {/* View Mode Switcher Tabs */}
-        <div className="flex items-center gap-2 px-5 pt-3 bg-neutral-950/80 border-b border-neutral-800 text-xs">
+        <div role="tablist" className="flex items-center gap-2 px-5 pt-3 bg-neutral-950/80 border-b border-neutral-800 text-xs">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'create'}
+            aria-label="Generate and edit email draft tab"
             onClick={() => setActiveTab('create')}
-            className={`flex items-center gap-1.5 pb-2.5 font-medium border-b-2 transition ${
+            className={`flex items-center gap-1.5 pb-2.5 font-medium border-b-2 transition cursor-pointer ${
               activeTab === 'create'
                 ? 'border-indigo-500 text-indigo-400 font-bold'
                 : 'border-transparent text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Generate & Edit Draft</span>
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'saved'}
+            aria-label={`Saved email drafts review tab with ${savedDrafts.length} drafts`}
             onClick={() => setActiveTab('saved')}
-            className={`flex items-center gap-1.5 pb-2.5 font-medium border-b-2 transition ${
+            className={`flex items-center gap-1.5 pb-2.5 font-medium border-b-2 transition cursor-pointer ${
               activeTab === 'saved'
                 ? 'border-indigo-500 text-indigo-400 font-bold'
                 : 'border-transparent text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            <Bookmark className="w-3.5 h-3.5" />
+            <Bookmark className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Saved Drafts for Review ({savedDrafts.length})</span>
           </button>
         </div>
@@ -244,8 +254,9 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
             {/* Form Controls */}
             <div className="p-4 bg-neutral-950/80 border-b border-neutral-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Interviewer / Recruiter Name</label>
+                <label htmlFor="input-followup-interviewer" className="block text-neutral-400 mb-1 font-medium">Interviewer / Recruiter Name</label>
                 <input
+                  id="input-followup-interviewer"
                   type="text"
                   value={interviewerName}
                   onChange={(e) => setInterviewerName(e.target.value)}
@@ -255,11 +266,13 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Interview Round</label>
+                <label htmlFor="select-followup-round" className="block text-neutral-400 mb-1 font-medium">Interview Round</label>
                 <select
+                  id="select-followup-round"
+                  aria-label="Interview Round type"
                   value={interviewRound}
                   onChange={(e) => setInterviewRound(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-indigo-500"
+                  className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="Round 1: Recruiter Screen">Round 1: Recruiter Screen</option>
                   <option value="Technical & System Design Round">Technical & System Design Round</option>
@@ -269,11 +282,13 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Tone of Email</label>
+                <label htmlFor="select-followup-tone" className="block text-neutral-400 mb-1 font-medium">Tone of Email</label>
                 <select
+                  id="select-followup-tone"
+                  aria-label="Tone of email selection"
                   value={tone}
                   onChange={(e) => setTone(e.target.value as any)}
-                  className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-indigo-500"
+                  className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   <option value="Professional & High Impact">Professional & High Impact</option>
                   <option value="Startup & Enthusiastic">Startup & Enthusiastic</option>
@@ -286,18 +301,22 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
             {/* Discussion points input */}
             <div className="px-4 py-2.5 bg-neutral-950/40 border-b border-neutral-800 text-xs">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-neutral-400 font-medium">Interview Discussion Highlights (Topics Covered):</span>
+                <label htmlFor="textarea-followup-discussion" className="text-neutral-400 font-medium">Interview Discussion Highlights (Topics Covered):</label>
                 <button
+                  type="button"
                   onClick={generateEmail}
                   disabled={isLoading}
+                  aria-label="Regenerate email draft with AI"
                   className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer"
                 >
-                  <Sparkles className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                  <Sparkles className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
                   <span>Regenerate Draft with AI</span>
                 </button>
               </div>
               <textarea
+                id="textarea-followup-discussion"
                 rows={2}
+                aria-label="Interview discussion highlights and topics covered"
                 value={customDiscussionPoints}
                 onChange={(e) => setCustomDiscussionPoints(e.target.value)}
                 className="w-full p-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-xs outline-none focus:border-indigo-500"
@@ -317,14 +336,16 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
                   {/* Timing Tip Pill */}
                   <div className="p-2.5 bg-neutral-950 border border-neutral-800 rounded-xl flex items-center justify-between gap-2 text-neutral-300">
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <Clock className="w-4 h-4 text-indigo-400 shrink-0" aria-hidden="true" />
                       <span><strong>Optimal Timing:</strong> {draft.sendTimingTip}</span>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setIsEditingDraft(!isEditingDraft)}
-                      className="flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white px-2 py-1 bg-neutral-900 rounded border border-neutral-800"
+                      aria-label={isEditingDraft ? 'View email preview' : 'Edit email draft'}
+                      className="flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white px-2 py-1 bg-neutral-900 rounded border border-neutral-800 cursor-pointer"
                     >
-                      <Edit3 className="w-3 h-3" />
+                      <Edit3 className="w-3 h-3" aria-hidden="true" />
                       <span>{isEditingDraft ? 'View Preview' : 'Edit Draft'}</span>
                     </button>
                   </div>
@@ -334,9 +355,11 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
                     <div className="p-3 bg-neutral-900/90 border-b border-neutral-800 font-mono text-[11px] text-neutral-300 flex items-center justify-between">
                       {isEditingDraft ? (
                         <div className="w-full mr-2">
-                          <label className="block text-[10px] text-neutral-400 mb-0.5">Subject Line:</label>
+                          <label htmlFor="input-edited-email-subject" className="block text-[10px] text-neutral-400 mb-0.5">Subject Line:</label>
                           <input
+                            id="input-edited-email-subject"
                             type="text"
+                            aria-label="Email subject line"
                             value={editedSubject}
                             onChange={(e) => setEditedSubject(e.target.value)}
                             className="w-full p-1.5 bg-neutral-950 border border-neutral-700 rounded text-white text-xs font-mono"
@@ -347,10 +370,12 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
                       )}
                       
                       <button
+                        type="button"
                         onClick={() => handleCopyDraft({ subject: editedSubject || draft.subject, salutation: draft.salutation, emailBody: editedBody || draft.emailBody, signOff: draft.signOff })}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-xs transition shrink-0 ml-2"
+                        aria-label="Copy full email text to clipboard"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-xs transition shrink-0 ml-2 cursor-pointer"
                       >
-                        {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copied ? <Check className="w-3 h-3 text-emerald-400" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
                         <span>{copied ? 'Copied!' : 'Copy'}</span>
                       </button>
                     </div>
@@ -360,6 +385,7 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
                       {isEditingDraft ? (
                         <textarea
                           rows={6}
+                          aria-label="Email body text"
                           value={editedBody}
                           onChange={(e) => setEditedBody(e.target.value)}
                           className="w-full p-2.5 bg-neutral-900 border border-neutral-700 rounded text-white text-xs font-mono leading-relaxed outline-none"
@@ -392,30 +418,36 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
             {/* Footer Actions */}
             <div className="p-4 border-t border-neutral-800 flex items-center justify-between bg-neutral-950">
               <button
+                type="button"
                 onClick={() => handleSaveToReviewList('REVIEWED')}
                 disabled={!draft}
+                aria-label="Save email draft to review list"
                 className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs shadow transition cursor-pointer disabled:opacity-50"
               >
-                <Bookmark className="w-3.5 h-3.5" />
+                <Bookmark className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Save to Review List</span>
               </button>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => draft && handleCopyDraft({ subject: editedSubject || draft.subject, salutation: draft.salutation, emailBody: editedBody || draft.emailBody, signOff: draft.signOff })}
                   disabled={!draft}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-semibold text-xs transition disabled:opacity-50"
+                  aria-label="Copy draft text to clipboard"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-semibold text-xs transition cursor-pointer disabled:opacity-50"
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Copy Text</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => draft && handleOpenMailto({ subject: editedSubject || draft.subject, salutation: draft.salutation, emailBody: editedBody || draft.emailBody, signOff: draft.signOff })}
                   disabled={!draft}
+                  aria-label="Open draft in default mail client"
                   className="flex items-center gap-1.5 px-3.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-semibold text-xs border border-neutral-700 transition cursor-pointer disabled:opacity-50"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400" />
+                  <ExternalLink className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
                   <span>Open in Mail Client</span>
                 </button>
               </div>
@@ -438,10 +470,12 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('create')}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                aria-label="Draft a new follow-up email"
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>+ Draft New Email</span>
               </button>
             </div>
@@ -449,7 +483,7 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
             <div className="flex-1 overflow-y-auto space-y-3 text-xs">
               {savedDrafts.length === 0 ? (
                 <div className="py-12 bg-neutral-950 rounded-xl border border-neutral-800 text-center space-y-2 text-neutral-400">
-                  <Bookmark className="w-8 h-8 text-neutral-600 mx-auto" />
+                  <Bookmark className="w-8 h-8 text-neutral-600 mx-auto" aria-hidden="true" />
                   <p className="font-semibold text-neutral-300">No Follow-Up Drafts Saved Yet</p>
                   <p className="text-xs text-neutral-500">Generate a new follow-up email from the previous tab and click 'Save to Review List'.</p>
                 </div>
@@ -477,9 +511,10 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
 
                       <div className="flex items-center gap-1.5">
                         <select
+                          aria-label={`Change status for draft for ${d.company}`}
                           value={d.status}
                           onChange={(e) => handleUpdateDraftStatus(d.id, e.target.value as any)}
-                          className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs outline-none"
+                          className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs outline-none cursor-pointer"
                         >
                           <option value="DRAFT">Status: Draft</option>
                           <option value="REVIEWED">Status: Reviewed</option>
@@ -488,11 +523,13 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
                         </select>
 
                         <button
+                          type="button"
                           onClick={() => handleDeleteDraft(d.id)}
-                          className="p-1.5 text-neutral-400 hover:text-red-400 bg-neutral-900 rounded border border-neutral-800 transition"
+                          aria-label={`Delete draft for ${d.company}`}
+                          className="p-1.5 text-neutral-400 hover:text-red-400 bg-neutral-900 rounded border border-neutral-800 transition cursor-pointer"
                           title="Delete draft"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -511,21 +548,25 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
 
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => handleCopyDraft(d)}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 rounded border border-neutral-800 text-xs transition"
+                          aria-label={`Copy draft for ${d.company}`}
+                          className="flex items-center gap-1 px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 rounded border border-neutral-800 text-xs transition cursor-pointer"
                         >
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>Copy Email</span>
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => {
                             handleOpenMailto(d);
                             handleUpdateDraftStatus(d.id, 'SENT');
                           }}
-                          className="flex items-center gap-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition"
+                          aria-label={`Open draft for ${d.company} in Gmail and mark sent`}
+                          className="flex items-center gap-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition cursor-pointer"
                         >
-                          <Send className="w-3 h-3" />
+                          <Send className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>Open in Gmail & Mark Sent</span>
                         </button>
                       </div>
@@ -538,8 +579,10 @@ export const FollowUpEmailModal: React.FC<FollowUpEmailModalProps> = ({
             <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
               <span>All drafts are saved and isolated to your user session.</span>
               <button
+                type="button"
                 onClick={onClose}
-                className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium"
+                aria-label="Close saved drafts modal"
+                className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium cursor-pointer"
               >
                 Close
               </button>

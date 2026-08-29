@@ -133,10 +133,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close candidate profile modal"
             className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -145,9 +147,9 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-neutral-300 flex items-center gap-1.5">
               {completion.is100Percent ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-hidden="true" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-amber-400" />
+                <AlertCircle className="w-4 h-4 text-amber-400" aria-hidden="true" />
               )}
               <span>Profile Form Completion Rate:</span>
             </span>
@@ -157,7 +159,14 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden">
+          <div 
+            className="w-full bg-neutral-800 h-2 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuenow={completion.percentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Profile completion progress: ${completion.percentage}%`}
+          >
             <div 
               className={`h-full transition-all duration-500 ${
                 completion.is100Percent 
@@ -181,16 +190,18 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           {/* Section 1: Basic Information & Native Country */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-emerald-400" />
+              <User className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
               1. Basic Credentials & Native Country
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">First Name *</label>
+                <label htmlFor="input-candidate-firstname" className="block text-neutral-400 mb-1 font-medium">First Name *</label>
                 <input
+                  id="input-candidate-firstname"
                   type="text"
                   required
+                  aria-label="First Name"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none"
@@ -198,10 +209,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Last Name *</label>
+                <label htmlFor="input-candidate-lastname" className="block text-neutral-400 mb-1 font-medium">Last Name *</label>
                 <input
+                  id="input-candidate-lastname"
                   type="text"
                   required
+                  aria-label="Last Name"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none"
@@ -209,10 +222,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Email Address *</label>
+                <label htmlFor="input-candidate-email" className="block text-neutral-400 mb-1 font-medium">Email Address *</label>
                 <input
+                  id="input-candidate-email"
                   type="email"
                   required
+                  aria-label="Email Address"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none"
@@ -220,10 +235,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Phone Number *</label>
+                <label htmlFor="input-candidate-phone" className="block text-neutral-400 mb-1 font-medium">Phone Number *</label>
                 <input
+                  id="input-candidate-phone"
                   type="tel"
                   required
+                  aria-label="Phone Number"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none"
@@ -231,10 +248,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">Current Location (City, State) *</label>
+                <label htmlFor="input-candidate-location" className="block text-neutral-400 mb-1 font-medium">Current Location (City, State) *</label>
                 <input
+                  id="input-candidate-location"
                   type="text"
                   required
+                  aria-label="Current Location"
                   value={formData.currentLocation}
                   onChange={(e) => setFormData({ ...formData, currentLocation: e.target.value })}
                   placeholder="e.g. Lucknow, India"
@@ -243,10 +262,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1 font-medium">
+                <label htmlFor="modal-native-country" className="block text-neutral-400 mb-1 font-medium">
                   Native Country / Citizenship *
                 </label>
                 <select
+                  id="modal-native-country"
+                  aria-label="Candidate native country or citizenship"
                   value={formData.nativeCountry || 'India'}
                   onChange={(e) => setFormData({ ...formData, nativeCountry: e.target.value })}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none cursor-pointer"
@@ -274,7 +295,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
             {/* Target Roles */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-neutral-400 font-medium">Target Job Titles (At least 1 required):</label>
+                <label htmlFor="input-add-role-modal" className="block text-neutral-400 font-medium">Target Job Titles (At least 1 required):</label>
                 <span className="text-[11px] text-neutral-500">{formData.targetRoles.length} selected</span>
               </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -284,8 +305,13 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                   formData.targetRoles.map(role => (
                     <span key={role} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-teal-950 text-teal-300 border border-teal-800 font-medium">
                       {role}
-                      <button type="button" onClick={() => handleRemoveRole(role)} className="text-teal-400 hover:text-rose-400">
-                        <X className="w-3 h-3" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRole(role)}
+                        aria-label={`Remove role ${role}`}
+                        className="text-teal-400 hover:text-rose-400 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" aria-hidden="true" />
                       </button>
                     </span>
                   ))
@@ -293,7 +319,9 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               </div>
               <div className="flex gap-2">
                 <input
+                  id="input-add-role-modal"
                   type="text"
+                  aria-label="Add custom target role"
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                   placeholder="Add role e.g. 'Senior Full Stack', 'AI Engineer', 'Scrum Master'..."
@@ -302,6 +330,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAddRole(newRole)}
+                  aria-label="Add new role to target list"
                   className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg font-medium cursor-pointer"
                 >
                   Add Role
@@ -327,10 +356,15 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                           ? 'bg-blue-950 text-blue-300 border border-blue-800' 
                           : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                       }`}>
-                        {isNative ? <Home className="w-3 h-3 text-blue-400" /> : null}
+                        {isNative ? <Home className="w-3 h-3 text-blue-400" aria-hidden="true" /> : null}
                         <span>{country} {isNative ? '(Native)' : ''}</span>
-                        <button type="button" onClick={() => handleToggleCountry(country)} className="hover:text-rose-400">
-                          <X className="w-3 h-3" />
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCountry(country)}
+                          aria-label={`Remove country ${country}`}
+                          className="hover:text-rose-400 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" aria-hidden="true" />
                         </button>
                       </span>
                     );
@@ -341,6 +375,8 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               {/* Add Country Select */}
               <div className="flex gap-2">
                 <select
+                  id="select-add-country-modal"
+                  aria-label="Add target country from global world list"
                   onChange={(e) => {
                     if (e.target.value) {
                       handleToggleCountry(e.target.value);
@@ -362,7 +398,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
             {/* Visa Requirement Notice for Native Country */}
             {isDomesticSearch && (
               <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-lg flex items-center gap-2 text-blue-200">
-                <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" aria-hidden="true" />
                 <span>
                   <strong>Native Search Active:</strong> When searching in {formData.nativeCountry || 'your native country'}, visa sponsorship restrictions are automatically bypassed.
                 </span>
@@ -373,26 +409,33 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           {/* Section 3: Skills & Summary */}
           <div className="space-y-3 pt-3 border-t border-neutral-800">
             <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-emerald-400" />
+              <Award className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
               3. Core Skills & Professional Summary
             </h3>
 
             {/* Skills */}
             <div>
-              <label className="block text-neutral-400 mb-1 font-medium">Core Technical Stack (At least 3 required) *</label>
+              <label htmlFor="input-add-skill-modal" className="block text-neutral-400 mb-1 font-medium">Core Technical Stack (At least 3 required) *</label>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {formData.skills.map(skill => (
                   <span key={skill} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 font-mono text-[11px]">
                     {skill}
-                    <button type="button" onClick={() => handleRemoveSkill(skill)} className="text-emerald-400 hover:text-rose-400">
-                      <X className="w-3 h-3" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      aria-label={`Remove skill ${skill}`}
+                      className="text-emerald-400 hover:text-rose-400 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" aria-hidden="true" />
                     </button>
                   </span>
                 ))}
               </div>
               <div className="flex gap-2">
                 <input
+                  id="input-add-skill-modal"
                   type="text"
+                  aria-label="Add technical skill"
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
                   placeholder="Add skill e.g. 'Playwright', 'FastAPI', 'Docker'..."
@@ -401,6 +444,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                 <button
                   type="button"
                   onClick={handleAddSkill}
+                  aria-label="Add skill to profile"
                   className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg cursor-pointer"
                 >
                   Add Skill
@@ -410,10 +454,12 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 
             {/* Summary */}
             <div>
-              <label className="block text-neutral-400 mb-1 font-medium">Professional Master Summary *</label>
+              <label htmlFor="textarea-candidate-summary" className="block text-neutral-400 mb-1 font-medium">Professional Master Summary *</label>
               <textarea
+                id="textarea-candidate-summary"
                 rows={3}
                 required
+                aria-label="Professional Master Summary"
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                 className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white focus:border-emerald-500 outline-none leading-relaxed"
@@ -426,7 +472,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
           <div className="space-y-3 pt-3 border-t border-neutral-800">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Send className="w-3.5 h-3.5 text-teal-400" />
+                <Send className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
                 4. Telegram Account & HITL Bot Connection (Zero Technical Setup)
               </h3>
               <span className="text-[10px] px-2 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-800 font-semibold">
@@ -442,6 +488,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
+                  aria-label="Launch AutoApplyHitlBot and auto fill chat ID"
                   onClick={async () => {
                     const botUrl = `https://t.me/AutoApplyHitlBot?start=user_${(formData.email || 'alok').split('@')[0]}`;
                     window.open(botUrl, '_blank');
@@ -472,12 +519,13 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold shadow transition cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Launch @AutoApplyHitlBot & Auto-Fill Chat ID</span>
                 </button>
 
                 <button
                   type="button"
+                  aria-label="Auto fill demo Telegram credentials"
                   onClick={() => {
                     setFormData(prev => ({
                       ...prev,
@@ -495,9 +543,11 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               {/* 3 Auto-filled Telegram Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
                 <div>
-                  <label className="block text-neutral-400 mb-1 font-medium text-[11px]">Telegram Username</label>
+                  <label htmlFor="input-telegram-username" className="block text-neutral-400 mb-1 font-medium text-[11px]">Telegram Username</label>
                   <input
+                    id="input-telegram-username"
                     type="text"
+                    aria-label="Telegram Username"
                     value={formData.telegramUsername || ''}
                     onChange={(e) => setFormData({ ...formData, telegramUsername: e.target.value })}
                     placeholder="@username"
@@ -505,9 +555,11 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-neutral-400 mb-1 font-medium text-[11px]">Chat ID (from @userinfobot)</label>
+                  <label htmlFor="input-telegram-chatid" className="block text-neutral-400 mb-1 font-medium text-[11px]">Chat ID (from @userinfobot)</label>
                   <input
+                    id="input-telegram-chatid"
                     type="text"
+                    aria-label="Telegram Chat ID"
                     value={formData.telegramChatId || ''}
                     onChange={(e) => setFormData({ ...formData, telegramChatId: e.target.value })}
                     placeholder="987654321"
@@ -515,9 +567,11 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-neutral-400 mb-1 font-medium text-[11px]">Bot Token (from @BotFather)</label>
+                  <label htmlFor="input-telegram-bottoken" className="block text-neutral-400 mb-1 font-medium text-[11px]">Bot Token (from @BotFather)</label>
                   <input
+                    id="input-telegram-bottoken"
                     type="password"
+                    aria-label="Telegram Bot Token"
                     value={formData.telegramBotToken || ''}
                     onChange={(e) => setFormData({ ...formData, telegramBotToken: e.target.value })}
                     placeholder="7482910394:AAHv..."
@@ -538,15 +592,17 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="Cancel profile edits"
                 className="px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
+                aria-label="Save and update profile"
                 className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow flex items-center gap-1.5 cursor-pointer"
               >
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-3.5 h-3.5" aria-hidden="true" />
                 Save & Update Profile
               </button>
             </div>

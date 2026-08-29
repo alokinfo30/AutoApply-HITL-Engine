@@ -192,20 +192,25 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
           {/* One-Click Apply All Button for Multiple Jobs */}
           {activeJobsList.length > 1 && (
             <button
+              type="button"
               id="btn-hitl-apply-all"
               onClick={handleApproveAllJobs}
+              aria-label={`One-click apply all ${activeJobsList.length} jobs`}
               className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-950/40 transition cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5" aria-hidden="true" />
               <span>🚀 One-Click Apply All ({activeJobsList.length} Jobs)</span>
             </button>
           )}
 
           <button
+            type="button"
             onClick={() => setShowConfig(!showConfig)}
+            aria-label={showConfig ? "Hide Telegram settings" : "Show Telegram settings and auto-detect"}
+            aria-expanded={showConfig}
             className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{showConfig ? 'Hide Telegram Settings' : 'Telegram Settings & Auto-Detect'}</span>
           </button>
         </div>
@@ -216,14 +221,16 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-teal-400" />
+              <Layers className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
               Stage 4 Multiple Jobs Queue ({activeJobsList.length} Active Feeds):
             </span>
             <button
+              type="button"
               onClick={handleApproveAllJobs}
+              aria-label={`One-click approve and apply all ${activeJobsList.length} jobs`}
               className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
             >
-              <Zap className="w-3 h-3" />
+              <Zap className="w-3 h-3" aria-hidden="true" />
               <span>One-Click Approve & Apply All →</span>
             </button>
           </div>
@@ -255,7 +262,7 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
                     </div>
 
                     <h4 className="text-xs font-bold text-white mb-0.5 flex items-center gap-1">
-                      <Building className="w-3 h-3 text-neutral-500 shrink-0" />
+                      <Building className="w-3 h-3 text-neutral-500 shrink-0" aria-hidden="true" />
                       <span className="truncate">{j.company}</span>
                     </h4>
                     <div className="text-[11px] text-neutral-400 truncate mb-2">
@@ -280,9 +287,10 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
                         e.stopPropagation();
                         handleApproveCurrent(j);
                       }}
+                      aria-label={`One-click apply for ${j.title} at ${j.company}`}
                       className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold transition flex items-center justify-center gap-1 shadow cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3 h-3" />
+                      <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
                       <span>1-Click Apply</span>
                     </button>
 
@@ -292,10 +300,11 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
                         e.stopPropagation();
                         onSkipJob(j);
                       }}
+                      aria-label={`Skip application for ${j.title} at ${j.company}`}
                       className="px-2 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-rose-400 rounded border border-neutral-800 text-[11px] font-medium transition cursor-pointer"
                       title="Skip this job"
                     >
-                      <XCircle className="w-3 h-3" />
+                      <XCircle className="w-3 h-3" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -310,7 +319,7 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
         <div className="bg-neutral-950 border border-teal-800/40 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-teal-300 uppercase tracking-wider flex items-center gap-2">
-              <Bot className="w-4 h-4 text-teal-400" />
+              <Bot className="w-4 h-4 text-teal-400" aria-hidden="true" />
               Telegram Account & Bot Auto-Capture (Zero Technical Friction)
             </h3>
             <span className="text-[11px] text-teal-400 font-mono">100% Free Forever via @BotFather</span>
@@ -322,21 +331,25 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
 
           <div className="flex flex-wrap gap-2 pt-1">
             <button
+              type="button"
               onClick={handleLaunchBotAndAutoCapture}
               disabled={isCapturingStart}
+              aria-label="Launch official bot on Telegram and auto capture Chat ID"
               className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold shadow transition cursor-pointer"
             >
-              <ExternalLink className={`w-3.5 h-3.5 ${isCapturingStart ? 'animate-spin' : ''}`} />
+              <ExternalLink className={`w-3.5 h-3.5 ${isCapturingStart ? 'animate-spin' : ''}`} aria-hidden="true" />
               <span>{isCapturingStart ? 'Waiting for /start in Telegram...' : '🔗 Launch Official Bot (@AutoApplyHitlBot) & Auto-Capture Chat ID'}</span>
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setTelegramToken('7482910394:AAHv_JobAutoApplyHitlBotKey_x92k');
                 setTelegramChatId('987654321');
                 setTelegramUsername('@alok_kumar');
                 setLiveSendSuccess('Auto-filled verified demo Telegram credentials!');
               }}
+              aria-label="Auto fill demo Telegram credentials"
               className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded-lg text-xs border border-neutral-700 font-medium cursor-pointer"
             >
               ⚡ Auto-Fill Demo Credentials
@@ -345,9 +358,11 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
             <div>
-              <label className="block text-neutral-300 mb-1 font-medium">Telegram Username</label>
+              <label htmlFor="telegram-username-input" className="block text-neutral-300 mb-1 font-medium">Telegram Username</label>
               <input
+                id="telegram-username-input"
                 type="text"
+                aria-label="Telegram username"
                 value={telegramUsername}
                 onChange={(e) => setTelegramUsername(e.target.value)}
                 placeholder="@username"
@@ -355,9 +370,11 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-neutral-300 mb-1 font-medium">Telegram Chat ID (from @userinfobot)</label>
+              <label htmlFor="telegram-chatid-input" className="block text-neutral-300 mb-1 font-medium">Telegram Chat ID (from @userinfobot)</label>
               <input
+                id="telegram-chatid-input"
                 type="text"
+                aria-label="Telegram Chat ID"
                 value={telegramChatId}
                 onChange={(e) => setTelegramChatId(e.target.value)}
                 placeholder="e.g. 987654321"
@@ -365,9 +382,11 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
               />
             </div>
             <div>
-              <label className="block text-neutral-300 mb-1 font-medium">Telegram Bot Token (from @BotFather)</label>
+              <label htmlFor="telegram-bottoken-input" className="block text-neutral-300 mb-1 font-medium">Telegram Bot Token (from @BotFather)</label>
               <input
+                id="telegram-bottoken-input"
                 type="password"
+                aria-label="Telegram Bot Token"
                 value={telegramToken}
                 onChange={(e) => setTelegramToken(e.target.value)}
                 placeholder="e.g. 7123456789:AAFxxx..."
@@ -381,11 +400,13 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
               Telegram Bot API is permanently free. No credit card or server fees required.
             </p>
             <button
+              type="button"
               onClick={handleLiveTelegramTest}
               disabled={isSendingLive}
+              aria-label={isSendingLive ? "Sending live test message to Telegram..." : "Dispatch live test message to Telegram"}
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-teal-300 border border-teal-800/80 rounded-lg text-xs font-semibold shadow transition cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{isSendingLive ? 'Sending...' : 'Dispatch Live Test Message'}</span>
             </button>
           </div>
@@ -466,47 +487,55 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleDownloadPdf(activeJob)}
+                  aria-label={`Download ATS resume PDF for ${activeJob.company}`}
                   className="p-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded border border-neutral-700 cursor-pointer"
                   title="Download attached PDF"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
 
               {/* Inline Callback Action Buttons */}
               <div className="pt-2">
                 <div className="text-[11px] text-neutral-400 mb-2 font-mono flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-400" />
+                  <Zap className="w-3 h-3 text-amber-400" aria-hidden="true" />
                   Interactive Inline Callback Keyboard:
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
+                    type="button"
                     id="btn-hitl-approve"
                     onClick={() => handleApproveCurrent(activeJob)}
+                    aria-label={`One-click approve and apply for ${activeJob.title} at ${activeJob.company}`}
                     className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/40 border border-emerald-500/40 active:scale-[0.98] transition cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-100" aria-hidden="true" />
                     <span>✅ One-Click Apply</span>
                   </button>
 
                   <button
+                    type="button"
                     id="btn-hitl-skip"
                     onClick={() => onSkipJob(activeJob)}
+                    aria-label={`Skip application for ${activeJob.title} at ${activeJob.company}`}
                     className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 active:scale-[0.98] transition cursor-pointer"
                   >
-                    <XCircle className="w-4 h-4 text-rose-400" />
+                    <XCircle className="w-4 h-4 text-rose-400" aria-hidden="true" />
                     <span>❌ Skip Job</span>
                   </button>
                 </div>
 
                 {activeJobsList.length > 1 && (
                   <button
+                    type="button"
                     onClick={handleApproveAllJobs}
+                    aria-label={`Apply to all ${activeJobsList.length} queued jobs together`}
                     className="w-full mt-2.5 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow cursor-pointer"
                   >
-                    <Zap className="w-3.5 h-3.5" />
+                    <Zap className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>Apply All {activeJobsList.length} Queued Jobs Together</span>
                   </button>
                 )}
@@ -519,7 +548,7 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
         <div className="space-y-3">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3 text-xs">
             <h3 className="text-xs font-bold text-neutral-200 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-emerald-400" aria-hidden="true" />
               HITL Policy Safeguards
             </h3>
 
@@ -555,10 +584,12 @@ export const TelegramHitlView: React.FC<TelegramHitlViewProps> = ({
               You can test the entire pipeline directly using the interactive simulator buttons on the left!
             </p>
             <button
+              type="button"
               onClick={() => handleApproveCurrent(activeJob)}
+              aria-label="Simulate approve and launch Stage 5 interview preparation"
               className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-semibold transition cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Simulate [Approve] & Launch Stage 5</span>
             </button>
           </div>

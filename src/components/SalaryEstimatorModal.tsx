@@ -93,19 +93,23 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition"
+            aria-label="Close salary estimator modal"
+            className="p-2 text-neutral-400 hover:text-white rounded-lg bg-neutral-900 border border-neutral-800 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
         {/* Input Parameters Bar */}
         <div className="p-4 bg-neutral-950/70 border-b border-neutral-800 grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
           <div>
-            <label className="block text-neutral-400 mb-1 font-medium">Target Role</label>
+            <label htmlFor="input-salary-role" className="block text-neutral-400 mb-1 font-medium">Target Role</label>
             <input
+              id="input-salary-role"
               type="text"
+              aria-label="Target role for salary calculation"
               value={roleTitle}
               onChange={(e) => setRoleTitle(e.target.value)}
               className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-emerald-500"
@@ -113,11 +117,13 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-neutral-400 mb-1 font-medium">Country</label>
+            <label htmlFor="select-salary-country" className="block text-neutral-400 mb-1 font-medium">Country</label>
             <select
+              id="select-salary-country"
+              aria-label="Target country for salary estimation"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-emerald-500"
+              className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-emerald-500 cursor-pointer"
             >
               <option value="Germany">Germany (EU)</option>
               <option value="Singapore">Singapore</option>
@@ -131,9 +137,11 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-neutral-400 mb-1 font-medium">City</label>
+            <label htmlFor="input-salary-city" className="block text-neutral-400 mb-1 font-medium">City</label>
             <input
+              id="input-salary-city"
               type="text"
+              aria-label="City location for salary calculation"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder="e.g. Berlin, Munich"
@@ -142,12 +150,14 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-neutral-400 mb-1 font-medium">Experience</label>
+            <label htmlFor="input-salary-experience" className="block text-neutral-400 mb-1 font-medium">Experience</label>
             <div className="flex gap-2">
               <input
+                id="input-salary-experience"
                 type="number"
                 min={1}
                 max={30}
+                aria-label="Years of experience"
                 value={experienceYears}
                 onChange={(e) => setExperienceYears(parseInt(e.target.value) || 1)}
                 className="w-full px-2.5 py-1.5 bg-neutral-900 border border-neutral-800 rounded-lg text-white outline-none focus:border-emerald-500"
@@ -156,7 +166,8 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
                 type="button"
                 onClick={fetchEstimate}
                 disabled={isLoading}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold"
+                aria-label="Calculate salary benchmark"
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold cursor-pointer"
               >
                 {isLoading ? '...' : 'Calc'}
               </button>
@@ -280,8 +291,10 @@ export const SalaryEstimatorModal: React.FC<SalaryEstimatorModalProps> = ({
             Compensation values based on verified global tech benchmarks & visa regulatory criteria.
           </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold"
+            aria-label="Close salary insights"
+            className="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold cursor-pointer"
           >
             Close Insights
           </button>

@@ -101,7 +101,7 @@ export const PipelineStageTracker: React.FC<PipelineStageTrackerProps> = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 relative">
-        {stages.map((stage, idx) => {
+        {stages.map((stage) => {
           const Icon = stage.icon;
           const isSelected = currentStage === stage.id;
           const isCompleted = completedStages.includes(stage.id);
@@ -110,8 +110,12 @@ export const PipelineStageTracker: React.FC<PipelineStageTrackerProps> = ({
           return (
             <div key={stage.id} className="relative flex flex-col">
               <button
+                type="button"
                 id={`stage-card-${stage.id}`}
                 disabled={!isUnlocked}
+                tabIndex={isUnlocked ? 0 : -1}
+                aria-label={`Navigate to ${stage.badge}: ${stage.name} - ${stage.subtitle} (${isSelected ? 'Active' : isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : 'Locked'})`}
+                aria-current={isSelected ? 'step' : undefined}
                 onClick={() => isUnlocked && onSelectStage(stage.id)}
                 className={`text-left p-3 rounded-lg border transition-all h-full flex flex-col justify-between ${
                   isSelected

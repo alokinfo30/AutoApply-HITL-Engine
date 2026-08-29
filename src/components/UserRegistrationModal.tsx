@@ -1160,8 +1160,10 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-neutral-400 mb-1 font-medium">Native Country / Citizenship</label>
+                    <label htmlFor="reg-modal-native-country" className="block text-neutral-400 mb-1 font-medium">Native Country / Citizenship</label>
                     <select
+                      id="reg-modal-native-country"
+                      aria-label="Candidate native country or citizenship"
                       value={profile.nativeCountry || 'India'}
                       onChange={(e) => setProfile({ ...profile, nativeCountry: e.target.value })}
                       className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-white outline-none focus:border-teal-500 cursor-pointer"
@@ -1198,13 +1200,15 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                   {/* Add from all world countries */}
                   <div className="flex items-center gap-2">
                     <select
+                      id="reg-modal-add-country"
+                      aria-label="Add target country from global world list"
                       onChange={(e) => {
                         if (e.target.value) {
                           handleAddCountry(e.target.value);
                           e.target.value = '';
                         }
                       }}
-                      className="px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-xs text-white outline-none focus:border-teal-500"
+                      className="px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-xs text-white outline-none focus:border-teal-500 cursor-pointer"
                     >
                       <option value="">+ Add Any Country in the World...</option>
                       {ALL_WORLD_COUNTRIES.map(c => (

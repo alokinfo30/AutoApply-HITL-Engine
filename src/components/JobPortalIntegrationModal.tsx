@@ -517,8 +517,9 @@ export const JobPortalIntegrationModal: React.FC<JobPortalIntegrationModalProps>
               /* Crawler & Cookie Configuration for Indeed, Glassdoor, Wellfound */
               <form onSubmit={handleSaveCredentials} className="space-y-3">
                 <div>
-                  <label className="block text-neutral-300 mb-1 font-medium">Account Username / Email</label>
+                  <label htmlFor="input-portal-username" className="block text-neutral-300 mb-1 font-medium">Account Username / Email</label>
                   <input
+                    id="input-portal-username"
                     type="text"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
@@ -528,10 +529,11 @@ export const JobPortalIntegrationModal: React.FC<JobPortalIntegrationModalProps>
                 </div>
 
                 <div>
-                  <label className="block text-neutral-300 mb-1 font-medium">
+                  <label htmlFor="input-portal-cookie" className="block text-neutral-300 mb-1 font-medium">
                     Session Cookie / Auth Token (Optional for 2FA Bypassing)
                   </label>
                   <input
+                    id="input-portal-cookie"
                     type="password"
                     value={sessionCookieInput}
                     onChange={(e) => setSessionCookieInput(e.target.value)}

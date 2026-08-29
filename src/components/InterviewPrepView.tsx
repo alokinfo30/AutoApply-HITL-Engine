@@ -340,15 +340,19 @@ Generated: ${new Date().toLocaleDateString()}
 
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             <button
+              type="button"
               onClick={handleDownloadAllZip}
               disabled={isZipping}
+              aria-label={isZipping ? "Bundling all master guides into zip..." : "Download all master guides as ZIP archive"}
               className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow text-xs"
             >
-              <Archive className="w-3.5 h-3.5" />
+              <Archive className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{isZipping ? 'Bundling...' : 'Download All (.ZIP)'}</span>
             </button>
             <button
+              type="button"
               onClick={handleExportPdf}
+              aria-label={`Download master guide PDF for ${currentJob.company}`}
               className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-amber-300 border border-amber-700/60 rounded-lg transition font-semibold cursor-pointer text-xs"
             >
               Download PDF ({currentJob.company})
@@ -362,14 +366,18 @@ Generated: ${new Date().toLocaleDateString()}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-x-auto">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-              <Layers className="w-3.5 h-3.5 text-violet-400" />
+              <Layers className="w-3.5 h-3.5 text-violet-400" aria-hidden="true" />
               Master Guides ({activeJobsList.length} Jobs):
             </span>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" role="tablist" aria-label="Job master guides">
               {activeJobsList.map((j, idx) => {
                 const isSaved = downloadedJobIds.has(j.id);
                 return (
                   <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedJobIndex === idx}
+                    aria-label={`Select master guide for ${j.company} in ${j.country}`}
                     key={j.id}
                     onClick={() => setSelectedJobIndex(idx)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
@@ -399,18 +407,22 @@ Generated: ${new Date().toLocaleDateString()}
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={handleDownloadAllZip}
               disabled={isZipping}
+              aria-label={isZipping ? "Bundling ZIP..." : "Download all master guides as ZIP archive"}
               className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-950 border border-neutral-800 hover:border-emerald-700/60 transition cursor-pointer"
             >
-              <Archive className="w-3.5 h-3.5" />
+              <Archive className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{isZipping ? 'Bundling ZIP...' : 'Download All (.ZIP)'}</span>
             </button>
             <button
+              type="button"
               onClick={handleExportPdf}
+              aria-label="Download master guide PDF"
               className="text-xs font-bold text-violet-400 hover:text-violet-300 hidden sm:flex items-center gap-1 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Download PDF</span>
             </button>
           </div>
@@ -436,10 +448,13 @@ Generated: ${new Date().toLocaleDateString()}
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Seniority Selector */}
-          <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-lg p-0.5 text-xs">
+          <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-lg p-0.5 text-xs" role="group" aria-label="Select seniority level">
             {(['Mid-Level', 'Senior', 'Lead / Staff'] as const).map((level) => (
               <button
+                type="button"
                 key={level}
+                aria-pressed={seniorityLevel === level}
+                aria-label={`Seniority level ${level}`}
                 onClick={() => setSeniorityLevel(level)}
                 className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
                   seniorityLevel === level
@@ -454,59 +469,71 @@ Generated: ${new Date().toLocaleDateString()}
 
           {/* Action buttons */}
           <button
+            type="button"
             onClick={loadInterviewPrep}
             disabled={isLoading}
+            aria-label={isLoading ? "Generating interview guide..." : "Refresh and regenerate interview prep guide"}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
             title="Regenerate Interview Prep"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
             <span>{isLoading ? 'Generating...' : 'Refresh Guide'}</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowSchedulerModal(true)}
+            aria-label="Open automated calendar slot scheduler"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-teal-300 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
             title="Automated Calendar Slot Proposer"
           >
-            <Calendar className="w-3.5 h-3.5 text-teal-400" />
+            <Calendar className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
             <span>Schedule Slot</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowFollowUpEmailModal(true)}
+            aria-label="Open post-interview follow-up email generator"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-indigo-300 rounded-lg text-xs font-medium border border-neutral-700 transition cursor-pointer"
             title="Generate Post-Interview Follow-Up Email Draft"
           >
-            <Mail className="w-3.5 h-3.5 text-indigo-400" />
+            <Mail className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
             <span>Follow-Up Email</span>
           </button>
 
           <button
+            type="button"
             onClick={handleExportPdf}
             disabled={!prepGuide || isLoading}
+            aria-label="Export interview preparation guide as ATS-friendly PDF"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Export Prep PDF</span>
           </button>
 
           {onOpenSummaryDashboard && (
             <button
+              type="button"
               onClick={onOpenSummaryDashboard}
+              aria-label="View application session summary dashboard"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-violet-300 rounded-lg text-xs font-semibold border border-neutral-700 transition cursor-pointer"
               title="View Application Summary Dashboard"
             >
-              <FileText className="w-3.5 h-3.5 text-violet-400" />
+              <FileText className="w-3.5 h-3.5 text-violet-400" aria-hidden="true" />
               <span>Session Summary</span>
             </button>
           )}
 
           {onProceedToMockInterview && (
             <button
+              type="button"
               onClick={handleAttemptProceedToStage7}
+              aria-label="Launch AI Voice Mock Interview (Stage 7)"
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer"
             >
-              <Mic className="w-3.5 h-3.5" />
+              <Mic className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Launch AI Voice Mock Interview (Stage 7) →</span>
             </button>
           )}
@@ -517,13 +544,17 @@ Generated: ${new Date().toLocaleDateString()}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-12 text-center space-y-3">
           <div className="w-10 h-10 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-sm font-semibold text-white">Analyzing Job Description & Synthesizing Technical Interview Guide...</p>
-          <p className="text-xs text-neutral-400">Extracting syntax patterns, system architecture questions, and STAR answers from {job.company}'s tech stack.</p>
+          <p className="text-xs text-neutral-400">Extracting syntax patterns, system architecture questions, and STAR answers from {job?.company || 'target'}'s tech stack.</p>
         </div>
       ) : prepGuide ? (
         <div className="space-y-4">
           {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-2 border-b border-neutral-800 pb-2 overflow-x-auto text-xs">
+          <div className="flex items-center gap-2 border-b border-neutral-800 pb-2 overflow-x-auto text-xs" role="tablist" aria-label="Interview guide sections">
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'technical'}
+              aria-label={`Core Technical & Syntax tab with ${prepGuide.technicalQuestions?.length || 0} questions`}
               onClick={() => setActiveTab('technical')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                 activeTab === 'technical'
@@ -531,11 +562,15 @@ Generated: ${new Date().toLocaleDateString()}
                   : 'text-neutral-400 hover:text-white bg-neutral-900/60'
               }`}
             >
-              <Terminal className="w-3.5 h-3.5" />
+              <Terminal className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Core Technical & Syntax ({prepGuide.technicalQuestions?.length || 0})</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'system_design'}
+              aria-label={`System Design Scenarios tab with ${prepGuide.systemDesignQuestions?.length || 0} questions`}
               onClick={() => setActiveTab('system_design')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                 activeTab === 'system_design'
@@ -543,11 +578,15 @@ Generated: ${new Date().toLocaleDateString()}
                   : 'text-neutral-400 hover:text-white bg-neutral-900/60'
               }`}
             >
-              <Cpu className="w-3.5 h-3.5" />
+              <Cpu className="w-3.5 h-3.5" aria-hidden="true" />
               <span>System Design Scenarios ({prepGuide.systemDesignQuestions?.length || 0})</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'behavioral'}
+              aria-label={`Behavioral STAR Stories tab with ${prepGuide.behavioralStarQuestions?.length || 0} stories`}
               onClick={() => setActiveTab('behavioral')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                 activeTab === 'behavioral'
@@ -555,11 +594,15 @@ Generated: ${new Date().toLocaleDateString()}
                   : 'text-neutral-400 hover:text-white bg-neutral-900/60'
               }`}
             >
-              <Award className="w-3.5 h-3.5" />
+              <Award className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Behavioral STAR Stories ({prepGuide.behavioralStarQuestions?.length || 0})</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'company'}
+              aria-label={`${currentJob.company} Domain Q&As tab with ${prepGuide.companySpecificQuestions?.length || 0} questions`}
               onClick={() => setActiveTab('company')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                 activeTab === 'company'
@@ -567,11 +610,15 @@ Generated: ${new Date().toLocaleDateString()}
                   : 'text-neutral-400 hover:text-white bg-neutral-900/60'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>{job.company} Domain Q&As ({prepGuide.companySpecificQuestions?.length || 0})</span>
+              <Building2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>{currentJob.company} Domain Q&As ({prepGuide.companySpecificQuestions?.length || 0})</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'tips'}
+              aria-label={`Bar-Raiser Tips tab with ${prepGuide.interviewTips?.length || 0} tips`}
               onClick={() => setActiveTab('tips')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                 activeTab === 'tips'
@@ -579,7 +626,7 @@ Generated: ${new Date().toLocaleDateString()}
                   : 'text-neutral-400 hover:text-white bg-neutral-900/60'
               }`}
             >
-              <Lightbulb className="w-3.5 h-3.5" />
+              <Lightbulb className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Bar-Raiser Tips ({prepGuide.interviewTips?.length || 0})</span>
             </button>
           </div>
@@ -593,6 +640,9 @@ Generated: ${new Date().toLocaleDateString()}
                   className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-sm transition hover:border-neutral-700"
                 >
                   <button
+                    type="button"
+                    aria-expanded={expandedIndex === idx}
+                    aria-label={`Toggle details for question ${idx + 1}: ${q.question}`}
                     onClick={() => setExpandedIndex(expandedIndex === idx ? null : idx)}
                     className="w-full p-4 text-left flex items-start justify-between gap-3 bg-neutral-900/90 hover:bg-neutral-800/50 transition cursor-pointer"
                   >
@@ -608,7 +658,7 @@ Generated: ${new Date().toLocaleDateString()}
                       </h3>
                     </div>
                     <div className="p-1 rounded bg-neutral-800 text-neutral-400 shrink-0">
-                      {expandedIndex === idx ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {expandedIndex === idx ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
                     </div>
                   </button>
 
@@ -617,7 +667,7 @@ Generated: ${new Date().toLocaleDateString()}
                       {/* Concept Definition */}
                       <div className="space-y-1">
                         <h4 className="text-[11px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <BookOpen className="w-3.5 h-3.5" />
+                          <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
                           Core Technical Definition & Underlying Mechanism
                         </h4>
                         <p className="text-neutral-300 leading-relaxed bg-neutral-900/80 p-3 rounded-lg border border-neutral-800">
@@ -630,14 +680,16 @@ Generated: ${new Date().toLocaleDateString()}
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <h4 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                              <Code className="w-3.5 h-3.5" />
+                              <Code className="w-3.5 h-3.5" aria-hidden="true" />
                               Optimal Code Pattern / Syntax
                             </h4>
                             <button
+                              type="button"
+                              aria-label={`Copy code syntax for question ${idx + 1}`}
                               onClick={() => handleCopyCode(q.syntax, idx)}
-                              className="flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white px-2 py-0.5 rounded bg-neutral-800 transition"
+                              className="flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white px-2 py-0.5 rounded bg-neutral-800 transition cursor-pointer"
                             >
-                              {copiedIndex === idx ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                              {copiedIndex === idx ? <CheckCircle className="w-3 h-3 text-emerald-400" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
                               <span>{copiedIndex === idx ? 'Copied' : 'Copy Code'}</span>
                             </button>
                           </div>
@@ -650,7 +702,7 @@ Generated: ${new Date().toLocaleDateString()}
                       {/* Production Example & Trade-offs */}
                       <div className="space-y-1">
                         <h4 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <Cpu className="w-3.5 h-3.5" />
+                          <Cpu className="w-3.5 h-3.5" aria-hidden="true" />
                           Real-World Production Trade-offs & Experience Narrative
                         </h4>
                         <p className="text-neutral-300 leading-relaxed bg-neutral-900/80 p-3 rounded-lg border border-neutral-800">
@@ -857,14 +909,18 @@ Generated: ${new Date().toLocaleDateString()}
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
               <button
+                type="button"
                 onClick={() => setShowStage7WarningModal(false)}
+                aria-label="Cancel and keep interview preparation guide"
                 className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-semibold cursor-pointer"
               >
                 Cancel & Keep Guide
               </button>
               
               <button
+                type="button"
                 onClick={handleAutoDeleteAndProceed}
+                aria-label="Proceed to Stage 7 and auto-delete guide"
                 className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-800/60 text-xs font-semibold cursor-pointer"
                 title="Deletes guide and advances to Stage 7 immediately"
               >
@@ -872,14 +928,16 @@ Generated: ${new Date().toLocaleDateString()}
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   handleExportPdf();
                   setShowStage7WarningModal(false);
                   if (onProceedToMockInterview) onProceedToMockInterview();
                 }}
+                aria-label="Download guide PDF and proceed to Stage 7"
                 className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>📥 Download PDF & Proceed</span>
               </button>
             </div>
