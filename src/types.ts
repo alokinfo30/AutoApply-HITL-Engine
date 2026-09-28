@@ -345,6 +345,69 @@ export interface AuthUser {
   telegramUsername?: string;
   linkedInVerified: boolean;
   registeredAt: string;
+  idToken?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
+}
+
+// Portfolio & Autonomous Portfolio Agent Types
+export interface PortfolioProject {
+  id?: number;
+  portfolioId?: number;
+  title: string;
+  description?: string;
+  technologies: string[];
+  githubRepoUrl?: string;
+  liveDemoUrl?: string;
+  starsCount: number;
+  forksCount: number;
+  primaryLanguage?: string;
+  isFeatured: boolean;
+  agentCurationReason?: string;
+  highlightBullets: string[];
+  status: 'approved' | 'suggested' | 'archived';
+  displayOrder: number;
+}
+
+export interface PortfolioAgentReview {
+  id: number;
+  portfolioId: number;
+  userUid: string;
+  reviewType: 'sync_update' | 'curation_proposal' | 'headline_refinement' | 'new_repo_detected';
+  title: string;
+  changeSummary: string;
+  diffPayload: string;
+  status: 'pending' | 'approved' | 'rejected' | 'modified';
+  userFeedback?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface UserPortfolio {
+  id: number;
+  userId: number;
+  userUid: string;
+  slug: string;
+  title: string;
+  headline?: string;
+  bio?: string;
+  curatedSummary?: string;
+  featuredSkills: string[];
+  theme: 'modern' | 'minimal' | 'cyberpunk' | 'executive';
+  status: string;
+  isPublished: boolean;
+  viewsCount: number;
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    email?: string;
+    twitter?: string;
+  };
+  projects: PortfolioProject[];
+  reviews?: PortfolioAgentReview[];
+  agentInsights?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Autonomous Daily Auto-Pilot Engine

@@ -18,6 +18,7 @@ import { MockInterviewView } from './components/MockInterviewView';
 import { OpenSourceCodeHub } from './components/OpenSourceCodeHub';
 import { ApplicationHistoryView, HistoryRecord } from './components/ApplicationHistoryView';
 import { SelfHealingStudioView } from './components/SelfHealingStudioView';
+import { PortfolioAgentStudio } from './components/PortfolioAgentStudio';
 import { initGlobalErrorCapture } from './utils/selfHealingInterceptor';
 
 // Modals & New Core Features
@@ -55,7 +56,7 @@ import {
 
 export default function App() {
   // Navigation & View Tabs
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'architecture' | 'history' | 'self-healing'>('pipeline');
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'portfolio' | 'architecture' | 'history' | 'self-healing'>('pipeline');
   const [currentStage, setCurrentStage] = useState<StageId>(1);
   const [completedStages, setCompletedStages] = useState<number[]>([1]);
   const [unlockedMaxStage, setUnlockedMaxStage] = useState<number>(1);
@@ -962,6 +963,20 @@ export default function App() {
               />
             )}
           </div>
+        )}
+
+        {activeTab === 'portfolio' && (
+          <PortfolioAgentStudio
+            authUser={authUser}
+            candidateProfile={candidateProfile}
+            onOpenAuthModal={() => {
+              setAuthRequiredMessage("Sign in with Google to connect Cloud SQL & auto-generate your portfolio");
+              setIsAuthModalOpen(true);
+            }}
+            onUpdateProfileLinks={(gh, li) => {
+              setCandidateProfile(prev => ({ ...prev, githubUrl: gh, linkedInUrl: li }));
+            }}
+          />
         )}
 
         {activeTab === 'architecture' && (

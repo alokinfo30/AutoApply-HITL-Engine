@@ -26,8 +26,8 @@ import { PipelineStats, CandidateProfile, AuthUser } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 
 interface HeaderProps {
-  activeTab: 'pipeline' | 'architecture' | 'history' | 'self-healing';
-  setActiveTab: (tab: 'pipeline' | 'architecture' | 'history' | 'self-healing') => void;
+  activeTab: 'pipeline' | 'portfolio' | 'architecture' | 'history' | 'self-healing';
+  setActiveTab: (tab: 'pipeline' | 'portfolio' | 'architecture' | 'history' | 'self-healing') => void;
   onOpenProfile: () => void;
   onOpenPortals: () => void;
   onOpenTracker: () => void;
@@ -281,6 +281,25 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Layers className="w-3.5 h-3.5" aria-hidden="true" />
             {t('tab_pipeline')}
+          </button>
+
+          <button
+            type="button"
+            id="tab-portfolio"
+            role="tab"
+            aria-selected={activeTab === 'portfolio'}
+            aria-controls="main-content-region"
+            onClick={() => setActiveTab('portfolio')}
+            aria-label="Switch to Automated Portfolio Agent Studio"
+            className={`flex items-center gap-2 py-2.5 px-3.5 text-xs font-medium border-b-2 transition cursor-pointer ${
+              activeTab === 'portfolio'
+                ? 'border-emerald-500 text-emerald-400 bg-neutral-800/30 font-semibold'
+                : 'border-transparent text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+            <span>Portfolio Agent</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Cloud SQL</span>
           </button>
 
           <button

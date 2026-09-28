@@ -5,6 +5,24 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 
+import { requireAuth, optionalAuth, AuthRequest } from './src/middleware/auth.ts';
+import { getOrCreateUser, getUserByUid, updateUserLinks } from './src/db/users.ts';
+import {
+  getPortfolioWithDetailsByUserUid,
+  getPortfolioBySlug,
+  incrementPortfolioViews,
+  upsertPortfolio,
+  syncPortfolioProjects,
+  createAgentReviewProposal,
+  resolveAgentReview,
+} from './src/db/portfolio.ts';
+import {
+  fetchGitHubRepos,
+  parseLinkedInProfileWithLLM,
+  runPortfolioAgentCuration,
+  detectPortfolioDiffs,
+} from './src/services/portfolioAgent.ts';
+
 dotenv.config();
 
 const app = express();
@@ -68,6 +86,385 @@ app.get("/api/health", (_req, res) => {
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
     timestamp: new Date().toISOString()
   });
+});
+
+// ==========================================
+// CLOUD SQL & PORTFOLIO AGENT REST API ROUTES
+// ==========================================
+
+// Get authenticated user profile from Cloud SQL
+app.get("/api/user/profile", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized: Missing user UID" });
+
+    const user = await getOrCreateUser({
+      uid,
+      email: req.user?.email || "user@example.com",
+      displayName: req.user?.name,
+      photoUrl: req.user?.picture,
+    });
+
+    res.json({ success: true, user });
+  } catch (error: any) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch user profile" });
+  }
+});
+
+// Synchronize user's LinkedIn and GitHub URLs
+app.post("/api/user/sync-links", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const { githubUrl, linkedinUrl, autoSyncEnabled } = req.body;
+
+    let githubUsername = "";
+    if (githubUrl) {
+      const match = String(githubUrl).match(/github\.com\/([a-zA-Z0-9_-]+)/);
+      githubUsername = match ? match[1] : String(githubUrl).replace(/^@/, '').trim();
+    }
+
+    const updatedUser = await updateUserLinks(uid, {
+      githubUrl,
+      githubUsername,
+      linkedinUrl,
+      autoSyncEnabled: autoSyncEnabled !== undefined ? Boolean(autoSyncEnabled) : true,
+      lastSyncedAt: new Date(),
+    });
+
+    res.json({ success: true, user: updatedUser });
+  } catch (error: any) {
+    console.error("Error updating user links:", error);
+    res.status(500).json({ error: error.message || "Failed to update profile links" });
+  }
+});
+
+// Retrieve current logged-in user's portfolio and pending HITL reviews
+app.get("/api/portfolio/me", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const portfolio = await getPortfolioWithDetailsByUserUid(uid);
+    const user = await getUserByUid(uid);
+
+    res.json({
+      success: true,
+      portfolio,
+      user,
+    });
+  } catch (error: any) {
+    console.error("Error fetching user portfolio:", error);
+    res.status(500).json({ error: error.message || "Failed to retrieve portfolio" });
+  }
+});
+
+// Autonomous Portfolio Agent: Generate / Curate best work from GitHub and LinkedIn
+app.post("/api/portfolio/generate", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const { githubUrl, linkedinUrl, linkedinRawText, candidateProfile, theme } = req.body;
+
+    let user = await getUserByUid(uid);
+    if (!user) {
+      user = await getOrCreateUser({
+        uid,
+        email: req.user?.email || "user@example.com",
+        displayName: req.user?.name,
+        photoUrl: req.user?.picture,
+        githubUrl,
+        linkedinUrl,
+      });
+    }
+
+    const effectiveGithub = githubUrl || user.githubUrl || "";
+    let githubUsername = user.githubUsername;
+    if (effectiveGithub) {
+      const match = String(effectiveGithub).match(/github\.com\/([a-zA-Z0-9_-]+)/);
+      githubUsername = match ? match[1] : String(effectiveGithub).replace(/^@/, '').trim();
+    }
+
+    const effectiveLinkedin = linkedinUrl || user.linkedinUrl || "";
+
+    // 1. Fetch GitHub Repositories automatically
+    console.log(`[Portfolio Agent] Fetching GitHub repos for: ${githubUsername || 'unspecified'}`);
+    const repos = githubUsername ? await fetchGitHubRepos(githubUsername) : [];
+
+    // 2. Parse LinkedIn Data via LLM Agent
+    console.log(`[Portfolio Agent] Parsing LinkedIn data for: ${effectiveLinkedin || 'unspecified'}`);
+    const linkedinData = await parseLinkedInProfileWithLLM(
+      effectiveLinkedin,
+      linkedinRawText,
+      candidateProfile
+    );
+
+    // Update user record in Cloud SQL
+    await updateUserLinks(uid, {
+      githubUrl: effectiveGithub,
+      githubUsername: githubUsername || null,
+      linkedinUrl: effectiveLinkedin,
+      linkedinData: JSON.stringify(linkedinData),
+      lastSyncedAt: new Date(),
+    });
+
+    // 3. Run Autonomous Portfolio Agent to curate standout projects
+    console.log(`[Portfolio Agent] Autonomously curating best projects & synthesizing narrative...`);
+    const curation = await runPortfolioAgentCuration({
+      candidateProfile: candidateProfile || {
+        displayName: req.user?.name || user.displayName || "Engineering Architect",
+        email: req.user?.email || user.email,
+      },
+      githubRepos: repos,
+      linkedinData,
+    });
+
+    // Clean slug for portfolio
+    const baseSlug = (githubUsername || req.user?.email?.split('@')[0] || `dev-${uid.slice(0, 6)}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-');
+    const slug = `${baseSlug}`;
+
+    // 4. Upsert Portfolio in Cloud SQL
+    const portfolio = await upsertPortfolio({
+      userId: user.id,
+      userUid: uid,
+      slug,
+      title: curation.title,
+      headline: curation.headline,
+      bio: curation.bio,
+      curatedSummary: curation.curatedSummary,
+      featuredSkills: JSON.stringify(curation.featuredSkills),
+      theme: theme || curation.recommendedTheme || 'modern',
+      isPublished: true,
+      socialLinks: JSON.stringify({
+        github: effectiveGithub,
+        linkedin: effectiveLinkedin,
+        email: user.email,
+      }),
+    });
+
+    const savedProjects = await syncPortfolioProjects(portfolio.id, curation.curatedProjects);
+
+    res.json({
+      success: true,
+      portfolio: {
+        ...portfolio,
+        projects: savedProjects,
+        agentInsights: curation.agentInsights,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error generating portfolio:", error);
+    res.status(500).json({ error: error.message || "Failed to generate portfolio" });
+  }
+});
+
+// Instant Live Sync Engine (Synchronizes GitHub + LinkedIn changes to Portfolio)
+app.post("/api/portfolio/sync-now", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const user = await getUserByUid(uid);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const portfolio = await getPortfolioWithDetailsByUserUid(uid);
+    if (!portfolio) {
+      return res.status(404).json({ error: "No portfolio found. Please generate one first." });
+    }
+
+    const githubUsername = user.githubUsername || (user.githubUrl ? user.githubUrl.split('/').pop() : '');
+    const repos = githubUsername ? await fetchGitHubRepos(githubUsername) : [];
+
+    let parsedLinkedIn: any = {};
+    try {
+      if (user.linkedinData) parsedLinkedIn = JSON.parse(user.linkedinData);
+    } catch {}
+
+    const diff = detectPortfolioDiffs(portfolio.projects || [], repos, parsedLinkedIn);
+
+    if (diff.hasChanges) {
+      if (user.autoSyncEnabled) {
+        // Auto-synchronize
+        const curation = await runPortfolioAgentCuration({
+          candidateProfile: { displayName: user.displayName, email: user.email },
+          githubRepos: repos,
+          linkedinData: parsedLinkedIn,
+          existingPortfolio: portfolio,
+        });
+
+        await syncPortfolioProjects(portfolio.id, curation.curatedProjects);
+        await updateUserLinks(uid, { lastSyncedAt: new Date() });
+
+        // Record in agent reviews table as auto-applied
+        await createAgentReviewProposal({
+          portfolioId: portfolio.id,
+          userUid: uid,
+          reviewType: 'sync_update',
+          title: 'Automated GitHub & LinkedIn Sync Applied',
+          changeSummary: diff.suggestedSummary,
+          diffPayload: JSON.stringify({ autoApplied: true, diff, newProjectsCount: curation.curatedProjects.length }),
+        });
+
+        const refreshed = await getPortfolioWithDetailsByUserUid(uid);
+        return res.json({
+          success: true,
+          synced: true,
+          autoApplied: true,
+          portfolio: refreshed,
+          message: diff.suggestedSummary,
+        });
+      } else {
+        // Human-in-the-Loop review proposal
+        const proposal = await createAgentReviewProposal({
+          portfolioId: portfolio.id,
+          userUid: uid,
+          reviewType: 'sync_update',
+          title: 'New GitHub Repositories & Activity Detected',
+          changeSummary: diff.suggestedSummary,
+          diffPayload: JSON.stringify({ diff, proposedRepos: diff.addedRepos }),
+        });
+
+        const refreshed = await getPortfolioWithDetailsByUserUid(uid);
+        return res.json({
+          success: true,
+          synced: true,
+          autoApplied: false,
+          proposal,
+          portfolio: refreshed,
+          message: 'Changes detected and saved as a pending HITL review proposal for your review.',
+        });
+      }
+    }
+
+    await updateUserLinks(uid, { lastSyncedAt: new Date() });
+    res.json({
+      success: true,
+      synced: true,
+      hasChanges: false,
+      message: 'Portfolio is up to date with latest GitHub and LinkedIn activity.',
+      portfolio,
+    });
+  } catch (error: any) {
+    console.error("Error during sync:", error);
+    res.status(500).json({ error: error.message || "Failed to synchronize portfolio" });
+  }
+});
+
+// Human-in-the-Loop Feedback: Resolve pending Agent Proposal
+app.post("/api/portfolio/reviews/:id/resolve", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const reviewId = parseInt(req.params.id, 10);
+    const { action, feedback } = req.body; // 'approve' | 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: "Action must be 'approve' or 'reject'" });
+    }
+
+    const portfolio = await getPortfolioWithDetailsByUserUid(uid);
+    if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
+
+    const review = portfolio.reviews?.find((r) => r.id === reviewId);
+    if (!review) return res.status(404).json({ error: "Review proposal not found" });
+
+    if (action === 'approve') {
+      try {
+        const payload = JSON.parse(review.diffPayload);
+        if (payload.proposedRepos && Array.isArray(payload.proposedRepos)) {
+          const currentProjects = portfolio.projects || [];
+          const newProjects = payload.proposedRepos.map((repo: any, idx: number) => ({
+            title: repo.name.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            description: repo.description,
+            technologies: JSON.stringify([repo.language, ...(repo.topics || [])].filter(Boolean)),
+            githubRepoUrl: repo.url,
+            liveDemoUrl: repo.homepage || '',
+            starsCount: repo.stars,
+            forksCount: repo.forks,
+            primaryLanguage: repo.language,
+            isFeatured: true,
+            agentCurationReason: 'Approved by engineer via HITL review',
+            highlightBullets: JSON.stringify([
+              `Engineered and maintained open source repo ${repo.name}`,
+              `Demonstrates expertise in ${repo.language}`,
+            ]),
+            status: 'approved',
+            displayOrder: currentProjects.length + idx,
+          }));
+
+          await syncPortfolioProjects(portfolio.id, [...currentProjects, ...newProjects]);
+        }
+      } catch (e) {
+        console.warn("Could not apply proposal payload:", e);
+      }
+    }
+
+    await resolveAgentReview(reviewId, action === 'approve' ? 'approved' : 'rejected', feedback);
+    const refreshed = await getPortfolioWithDetailsByUserUid(uid);
+
+    res.json({
+      success: true,
+      portfolio: refreshed,
+      message: action === 'approve' ? 'Proposal approved and applied to portfolio.' : 'Proposal dismissed.',
+    });
+  } catch (error: any) {
+    console.error("Error resolving review:", error);
+    res.status(500).json({ error: error.message || "Failed to resolve review" });
+  }
+});
+
+// Update portfolio theme, bio, or publish state
+app.post("/api/portfolio/update", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const { title, headline, bio, curatedSummary, theme, isPublished } = req.body;
+    const portfolio = await getPortfolioWithDetailsByUserUid(uid);
+    if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
+
+    await upsertPortfolio({
+      userId: portfolio.userId,
+      userUid: uid,
+      slug: portfolio.slug,
+      title: title || portfolio.title,
+      headline: headline !== undefined ? headline : portfolio.headline,
+      bio: bio !== undefined ? bio : portfolio.bio,
+      curatedSummary: curatedSummary !== undefined ? curatedSummary : portfolio.curatedSummary,
+      theme: theme || portfolio.theme,
+      isPublished: isPublished !== undefined ? isPublished : portfolio.isPublished,
+    });
+
+    const refreshed = await getPortfolioWithDetailsByUserUid(uid);
+    res.json({ success: true, portfolio: refreshed });
+  } catch (error: any) {
+    console.error("Error updating portfolio:", error);
+    res.status(500).json({ error: error.message || "Failed to update portfolio" });
+  }
+});
+
+// Public portfolio viewing endpoint
+app.get("/api/portfolio/public/:slug", async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const portfolio = await getPortfolioBySlug(slug);
+    if (!portfolio) {
+      return res.status(404).json({ error: "Portfolio not found or not published" });
+    }
+
+    incrementPortfolioViews(slug);
+
+    res.json({ success: true, portfolio });
+  } catch (error: any) {
+    console.error("Error fetching public portfolio:", error);
+    res.status(500).json({ error: error.message || "Failed to load public portfolio" });
+  }
 });
 
 // 1. Live Job Discovery endpoint (Free Open APIs + Curated Sponsored Feed)

@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AuthUser, CandidateProfile } from '../types';
+import { auth, googleAuthProvider } from '../lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -156,36 +158,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 2000);
   };
 
-  // 1. Google / Gmail 1-Click OAuth SSO Login
+  // 1. Google / Gmail 1-Click OAuth SSO Login (Firebase Auth + Cloud SQL PostgreSQL Sync)
   const handleGoogleSsoLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      const res = await fetch('/api/auth/oauth-sso', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: 'google',
-          email: email || 'user@gmail.com',
-          name: name || 'Candidate',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
-        })
-      });
-      const data = await res.json();
-      
-      const user: AuthUser = data.user || {
-        id: `user-google-${Date.now()}`,
-        name: name || "Candidate",
-        email: email || "user@gmail.com",
+      // Direct Firebase Google Sign-In with Popup
+      let idToken = '';
+      let googleUser: any = null;
+
+      try {
+        const cred = await signInWithPopup(auth, googleAuthProvider);
+        googleUser = cred.user;
+        idToken = await cred.user.getIdToken();
+      } catch (fbErr: any) {
+        console.warn('Firebase popup was closed or unavailable, trying API fallback:', fbErr);
+      }
+
+      let dbUser: any = null;
+      if (idToken) {
+        // Authenticate with Cloud SQL Backend using verified Firebase ID token
+        const res = await fetch('/api/user/profile', {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          dbUser = data?.user;
+        }
+      }
+
+      const displayName = googleUser?.displayName || name || 'Tech Professional';
+      const userEmail = googleUser?.email || email || 'user@gmail.com';
+      const userPhoto = googleUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
+      const userId = googleUser?.uid || dbUser?.uid || `user-google-${Date.now()}`;
+
+      const user: AuthUser = {
+        id: userId,
+        name: displayName,
+        email: userEmail,
         provider: 'google',
         linkedInVerified: true,
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
-        registeredAt: new Date().toISOString()
+        avatarUrl: userPhoto,
+        registeredAt: new Date().toISOString(),
+        idToken: idToken || undefined,
+        githubUrl: dbUser?.githubUrl || undefined,
+        linkedinUrl: dbUser?.linkedinUrl || undefined,
       };
 
       const updatedProfile: Partial<CandidateProfile> = {
-        firstName: (name || 'Candidate').split(' ')[0],
-        lastName: (name || 'Candidate').split(' ').slice(1).join(' ') || '',
-        email: email || 'user@gmail.com',
+        firstName: displayName.split(' ')[0],
+        lastName: displayName.split(' ').slice(1).join(' ') || '',
+        email: userEmail,
       };
 
       setIsGoogleLoading(false);
@@ -193,19 +218,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       triggerAuthSuccess(user, updatedProfile);
       onClose();
     } catch (e) {
-      const user: AuthUser = {
-        id: `user-google-${Date.now()}`,
-        name: name || "Candidate",
-        email: email || "user@gmail.com",
-        provider: 'google',
-        linkedInVerified: true,
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
-        registeredAt: new Date().toISOString()
-      };
+      console.error('Google Sign-In failed:', e);
       setIsGoogleLoading(false);
-      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
-      triggerAuthSuccess(user);
-      onClose();
     }
   };
 
